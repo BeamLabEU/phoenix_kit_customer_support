@@ -1,0 +1,334 @@
+defmodule PhoenixKitCustomerSupport.Web.Details do
+  @moduledoc """
+  LiveView for displaying ticket details with comments and status management.
+
+  Provides comprehensive ticket detail view including:
+  - Full ticket information
+  - Status change buttons
+  - Public comment thread
+  - Internal notes section (for staff)
+  - Attachment gallery
+  - Status history timeline
+  """
+
+  use PhoenixKitWeb, :live_view
+
+  require Logger
+
+  alias PhoenixKit.Settings
+  alias PhoenixKit.Utils.Routes
+  alias PhoenixKitCustomerSupport
+  alias PhoenixKitCustomerSupport.Events
+
+  @impl true
+  def mount(%{"id" => ticket_uuid}, _session, socket) do
+    if PhoenixKitCustomerSupport.enabled?() do
+      current_user = socket.assigns[:phoenix_kit_current_user]
+
+      case PhoenixKitCustomerSupport.get_ticket(ticket_uuid, preload: [:user, :assigned_to]) do
+        nil ->
+          {:ok,
+           socket
+           |> put_flash(:error, "Ticket not found")
+           |> push_navigate(to: Routes.path("/admin/customer-support/tickets"))}
+
+        ticket ->
+          # Subscribe to events for this specific ticket
+          Events.subscribe_to_ticket(ticket.uuid)
+
+          socket =
+            socket
+            |> assign(:page_title, "Ticket: #{ticket.title}")
+            |> assign(:ticket, ticket)
+            |> assign(:current_user, current_user)
+            |> assign(:can_view_internal, true)
+            |> assign(
+              :internal_notes_enabled,
+              Settings.get_boolean_setting("customer_support_internal_notes_enabled", true)
+            )
+            |> assign(:comment_form, %{"content" => "", "is_internal" => false})
+            |> assign(:show_internal_form, false)
+            |> assign(:show_media_selector, false)
+            |> assign(
+              :attachments_enabled,
+              Settings.get_boolean_setting("customer_support_attachments_enabled", true)
+            )
+            |> load_comments()
+            |> load_attachments()
+            |> load_status_history()
+
+          {:ok, socket}
+      end
+    else
+      {:ok,
+       socket
+       |> put_flash(:error, "Tickets module is not enabled")
+       |> push_navigate(to: Routes.path("/admin"))}
+    end
+  end
+
+  @impl true
+  def handle_params(_params, _uri, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("add_comment", %{"comment" => params}, socket) do
+    ticket = socket.assigns.ticket
+    current_user = socket.assigns.current_user
+    content = Map.get(params, "content", "") |> String.trim()
+    is_internal = Map.get(params, "is_internal", "false") == "true"
+
+    if content == "" do
+      {:noreply, put_flash(socket, :error, "Comment cannot be empty")}
+    else
+      result =
+        if is_internal do
+          PhoenixKitCustomerSupport.create_internal_note(ticket.uuid, current_user.uuid, %{
+            content: content
+          })
+        else
+          PhoenixKitCustomerSupport.create_comment(ticket.uuid, current_user.uuid, %{
+            content: content
+          })
+        end
+
+      case result do
+        {:ok, _comment} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, if(is_internal, do: "Internal note added", else: "Comment added"))
+           |> assign(:comment_form, %{"content" => "", "is_internal" => false})
+           |> reload_ticket()
+           |> load_comments()}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to add comment")}
+      end
+    end
+  end
+
+  @impl true
+  def handle_event("toggle_internal_form", _params, socket) do
+    {:noreply, assign(socket, :show_internal_form, !socket.assigns.show_internal_form)}
+  end
+
+  @impl true
+  def handle_event("change_status", %{"status" => new_status}, socket) do
+    ticket = socket.assigns.ticket
+    current_user = socket.assigns.current_user
+
+    result =
+      case new_status do
+        "in_progress" -> PhoenixKitCustomerSupport.start_progress(ticket, current_user)
+        "resolved" -> PhoenixKitCustomerSupport.resolve_ticket(ticket, current_user)
+        "closed" -> PhoenixKitCustomerSupport.close_ticket(ticket, current_user)
+        "open" -> PhoenixKitCustomerSupport.reopen_ticket(ticket, current_user)
+        _ -> {:error, :invalid_status}
+      end
+
+    case result do
+      {:ok, updated_ticket} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Status updated to #{new_status}")
+         |> assign(
+           :ticket,
+           PhoenixKitCustomerSupport.get_ticket!(updated_ticket.uuid,
+             preload: [:user, :assigned_to]
+           )
+         )
+         |> load_status_history()}
+
+      {:error, :invalid_transition} ->
+        {:noreply, put_flash(socket, :error, "Invalid status transition")}
+
+      {:error, :reopen_not_allowed} ->
+        {:noreply, put_flash(socket, :error, "Reopening tickets is not allowed")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update status")}
+    end
+  end
+
+  @impl true
+  def handle_event("assign_to_me", _params, socket) do
+    ticket = socket.assigns.ticket
+    current_user = socket.assigns.current_user
+
+    case PhoenixKitCustomerSupport.assign_ticket(ticket, current_user.uuid, current_user) do
+      {:ok, updated_ticket} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Ticket assigned to you")
+         |> assign(
+           :ticket,
+           PhoenixKitCustomerSupport.get_ticket!(updated_ticket.uuid,
+             preload: [:user, :assigned_to]
+           )
+         )
+         |> load_status_history()}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to assign ticket")}
+    end
+  end
+
+  @impl true
+  def handle_event("delete_comment", %{"uuid" => comment_uuid}, socket) do
+    case PhoenixKitCustomerSupport.get_comment!(comment_uuid) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Comment not found")}
+
+      comment ->
+        case PhoenixKitCustomerSupport.delete_comment(comment) do
+          {:ok, _} ->
+            {:noreply,
+             socket
+             |> put_flash(:info, "Comment deleted")
+             |> reload_ticket()
+             |> load_comments()}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to delete comment")}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("open_media_selector", _params, socket) do
+    {:noreply, assign(socket, :show_media_selector, true)}
+  end
+
+  @impl true
+  def handle_event("close_media_selector", _params, socket) do
+    {:noreply, assign(socket, :show_media_selector, false)}
+  end
+
+  @impl true
+  def handle_event("remove_attachment", %{"uuid" => attachment_uuid}, socket) do
+    case PhoenixKitCustomerSupport.remove_attachment(attachment_uuid) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Attachment removed")
+         |> load_attachments()}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to remove attachment")}
+    end
+  end
+
+  @impl true
+  def handle_info({:media_selected, file_uuids}, socket) do
+    ticket = socket.assigns.ticket
+
+    Enum.each(file_uuids, fn file_uuid ->
+      PhoenixKitCustomerSupport.add_attachment_to_ticket(ticket.uuid, file_uuid)
+    end)
+
+    {:noreply,
+     socket
+     |> assign(:show_media_selector, false)
+     |> put_flash(:info, "#{length(file_uuids)} file(s) attached")
+     |> load_attachments()}
+  end
+
+  @impl true
+  def handle_info({:ticket_updated, ticket}, socket) do
+    # Only update if it's the same ticket
+    if ticket.uuid == socket.assigns.ticket.uuid do
+      {:noreply, assign(socket, :ticket, ticket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:ticket_status_changed, ticket, _old_status, _new_status}, socket) do
+    if ticket.uuid == socket.assigns.ticket.uuid do
+      socket =
+        socket
+        |> assign(:ticket, ticket)
+        |> load_status_history()
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:ticket_assigned, ticket, _old_assignee, _new_assignee}, socket) do
+    if ticket.uuid == socket.assigns.ticket.uuid do
+      socket =
+        socket
+        |> assign(:ticket, ticket)
+        |> load_status_history()
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:comment_created, _comment, ticket}, socket) do
+    if ticket.uuid == socket.assigns.ticket.uuid do
+      {:noreply, load_comments(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:internal_note_created, _comment, ticket}, socket) do
+    # Only update if user can view internal notes
+    if ticket.uuid == socket.assigns.ticket.uuid and socket.assigns.can_view_internal do
+      {:noreply, load_comments(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # Private functions
+
+  defp load_comments(socket) do
+    ticket = socket.assigns.ticket
+
+    comments =
+      if socket.assigns.can_view_internal do
+        PhoenixKitCustomerSupport.list_all_comments(ticket.uuid, preload: [:user])
+      else
+        PhoenixKitCustomerSupport.list_public_comments(ticket.uuid, preload: [:user])
+      end
+
+    public_comments = Enum.filter(comments, &(!&1.is_internal))
+    internal_notes = Enum.filter(comments, & &1.is_internal)
+
+    socket
+    |> assign(:public_comments, public_comments)
+    |> assign(:internal_notes, internal_notes)
+  end
+
+  defp load_attachments(socket) do
+    ticket = socket.assigns.ticket
+    attachments = PhoenixKitCustomerSupport.list_ticket_attachments(ticket.uuid, preload: [:file])
+    assign(socket, :attachments, attachments)
+  end
+
+  defp load_status_history(socket) do
+    ticket = socket.assigns.ticket
+    history = PhoenixKitCustomerSupport.get_status_history(ticket.uuid, preload: [:changed_by])
+    assign(socket, :status_history, history)
+  end
+
+  defp reload_ticket(socket) do
+    ticket =
+      PhoenixKitCustomerSupport.get_ticket!(socket.assigns.ticket.uuid,
+        preload: [:user, :assigned_to]
+      )
+
+    assign(socket, :ticket, ticket)
+  end
+end

@@ -1,0 +1,347 @@
+<div class="container flex-col mx-auto px-4 py-6">
+  <.admin_page_header
+    back={PhoenixKit.Utils.Routes.path("/admin")}
+    title="Support Tickets"
+    subtitle="Manage customer support requests"
+  >
+    <:actions>
+      <.link
+        navigate={PhoenixKit.Utils.Routes.path("/admin/customer-support/tickets/new")}
+        class="btn btn-primary"
+      >
+        <.icon name="hero-plus" class="h-5 w-5" /> New Ticket
+      </.link>
+    </:actions>
+  </.admin_page_header>
+
+  <%!-- Stats Cards --%>
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <PhoenixKitWeb.Components.Core.StatCard.stat_card
+      compact={true}
+      rounded="xl"
+      color="primary"
+      value={@stats.total}
+      title="Total"
+      subtitle="All support requests"
+    >
+      <:icon>
+        <.icon name="hero-list-bullet" class="w-5 h-5" />
+      </:icon>
+    </PhoenixKitWeb.Components.Core.StatCard.stat_card>
+
+    <PhoenixKitWeb.Components.Core.StatCard.stat_card
+      compact={true}
+      rounded="xl"
+      color="info"
+      value={@stats.open}
+      title="Open"
+      subtitle="Awaiting response"
+    >
+      <:icon>
+        <.icon name="hero-inbox" class="w-5 h-5" />
+      </:icon>
+    </PhoenixKitWeb.Components.Core.StatCard.stat_card>
+
+    <PhoenixKitWeb.Components.Core.StatCard.stat_card
+      compact={true}
+      rounded="xl"
+      color="warning"
+      value={@stats.in_progress}
+      title="In Progress"
+      subtitle="Being worked on"
+    >
+      <:icon>
+        <.icon name="hero-clock" class="w-5 h-5" />
+      </:icon>
+    </PhoenixKitWeb.Components.Core.StatCard.stat_card>
+
+    <PhoenixKitWeb.Components.Core.StatCard.stat_card
+      compact={true}
+      rounded="xl"
+      color="success"
+      value={@stats.resolved}
+      title="Resolved"
+      subtitle="Solution provided"
+    >
+      <:icon>
+        <.icon name="hero-check-circle" class="w-5 h-5" />
+      </:icon>
+    </PhoenixKitWeb.Components.Core.StatCard.stat_card>
+
+    <PhoenixKitWeb.Components.Core.StatCard.stat_card
+      compact={true}
+      rounded="xl"
+      color="neutral"
+      value={@stats.closed}
+      title="Closed"
+      subtitle="No further action"
+    >
+      <:icon>
+        <.icon name="hero-archive-box" class="w-5 h-5" />
+      </:icon>
+    </PhoenixKitWeb.Components.Core.StatCard.stat_card>
+  </div>
+
+  <%!-- Loading --%>
+  <%= if @loading do %>
+    <div class="flex justify-center items-center py-12">
+      <span class="loading loading-spinner loading-lg"></span>
+    </div>
+  <% else %>
+    <div class="bg-base-100 mb-6">
+        <.table_default
+          id="customer-support-tickets-table"
+          variant="zebra"
+          class="w-full table-fixed"
+          toggleable={true}
+          items={@tickets}
+          card_fields={
+            fn ticket ->
+              [
+                %{
+                  label: "Customer",
+                  value: (ticket.user && ticket.user.email) || "Unknown"
+                },
+                %{
+                  label: "Assigned",
+                  value: (ticket.assigned_to && ticket.assigned_to.email) || "Unassigned"
+                },
+                %{
+                  label: "Created",
+                  value: Calendar.strftime(ticket.inserted_at, "%b %d, %Y")
+                }
+              ]
+            end
+          }
+        >
+          <:toolbar_title>
+            <span class="text-sm text-base-content/60">{@total_count} tickets</span>
+          </:toolbar_title>
+
+          <:toolbar_actions>
+            <form
+              phx-change="filter"
+              phx-submit="filter"
+              class="flex flex-wrap items-center gap-2"
+            >
+              <input
+                type="text"
+                name="search[query]"
+                value={@search_query}
+                placeholder="Search tickets..."
+                class="input input-sm input-bordered w-44 sm:w-56"
+                phx-debounce="300"
+              />
+              <label class="select select-sm w-36">
+                <select name="filters[status]">
+                  <option value="">All Statuses</option>
+                  <option value="open" selected={@status_filter == "open"}>Open</option>
+                  <option value="in_progress" selected={@status_filter == "in_progress"}>
+                    In Progress
+                  </option>
+                  <option value="resolved" selected={@status_filter == "resolved"}>
+                    Resolved
+                  </option>
+                  <option value="closed" selected={@status_filter == "closed"}>Closed</option>
+                </select>
+              </label>
+              <label class="select select-sm w-36">
+                <select name="filters[assigned_to]">
+                  <option value="">All Assigned</option>
+                  <option value="unassigned" selected={@assigned_to_filter == "unassigned"}>
+                    Unassigned
+                  </option>
+                </select>
+              </label>
+              <button type="button" phx-click="clear_filters" class="btn btn-sm btn-ghost">
+                Clear
+              </button>
+            </form>
+          </:toolbar_actions>
+
+          <:card_header :let={ticket}>
+            <div class="flex items-start justify-between gap-2">
+              <div class="font-medium text-sm leading-snug">{ticket.title}</div>
+              <%= case ticket.status do %>
+                <% "open" -> %>
+                  <span class="badge badge-info whitespace-nowrap shrink-0">Open</span>
+                <% "in_progress" -> %>
+                  <span class="badge badge-warning whitespace-nowrap shrink-0">In Progress</span>
+                <% "resolved" -> %>
+                  <span class="badge badge-success whitespace-nowrap shrink-0">Resolved</span>
+                <% "closed" -> %>
+                  <span class="badge whitespace-nowrap shrink-0">Closed</span>
+              <% end %>
+            </div>
+          </:card_header>
+
+          <:card_actions :let={ticket}>
+            <.link
+              navigate={
+                PhoenixKit.Utils.Routes.path("/admin/customer-support/tickets/#{ticket.uuid}")
+              }
+              class="btn btn-xs btn-outline btn-info"
+            >
+              <.icon name="hero-eye" class="w-3 h-3" /> {gettext("View")}
+            </.link>
+            <.link
+              navigate={
+                PhoenixKit.Utils.Routes.path(
+                  "/admin/customer-support/tickets/#{ticket.uuid}/edit"
+                )
+              }
+              class="btn btn-xs btn-outline"
+            >
+              <.icon name="hero-pencil" class="w-3 h-3" /> {gettext("Edit")}
+            </.link>
+          </:card_actions>
+
+          <.table_default_header>
+            <.table_default_row>
+              <.table_default_header_cell class="w-[38%] lg:w-[28%]">
+                Ticket
+              </.table_default_header_cell>
+              <.table_default_header_cell class="w-[26%] lg:w-[20%]">
+                Customer
+              </.table_default_header_cell>
+              <.table_default_header_cell class="hidden lg:table-cell lg:w-[17%]">
+                Assigned To
+              </.table_default_header_cell>
+              <.table_default_header_cell class="w-[14%]">
+                Status
+              </.table_default_header_cell>
+              <.table_default_header_cell class="w-[12%]">
+                Created
+              </.table_default_header_cell>
+              <.table_default_header_cell class="w-[10%] lg:w-[9%]">
+                Actions
+              </.table_default_header_cell>
+            </.table_default_row>
+          </.table_default_header>
+          <.table_default_body>
+            <%= if Enum.empty?(@tickets) do %>
+              <.table_default_row hover={false}>
+                <.table_default_cell colspan={6} class="text-center py-12 text-base-content/70">
+                  <.icon name="hero-ticket" class="h-10 w-10 mx-auto text-base-content/30 mb-2" />
+                  <div class="font-medium">No tickets found</div>
+                  <div class="text-sm">
+                    <%= if @status_filter || @search_query do %>
+                      Try adjusting your filters or search query.
+                    <% else %>
+                      Create your first ticket to get started.
+                    <% end %>
+                  </div>
+                </.table_default_cell>
+              </.table_default_row>
+            <% end %>
+            <%= for ticket <- @tickets do %>
+              <.table_default_row>
+                <.table_default_cell>
+                  <div class="font-medium truncate">{ticket.title}</div>
+                  <div class="text-xs text-base-content/60 line-clamp-2">
+                    {ticket.description}
+                  </div>
+                </.table_default_cell>
+                <.table_default_cell>
+                  <%= if ticket.user do %>
+                    <div class="flex items-center gap-2 min-w-0">
+                      <.user_avatar user={ticket.user} size="sm" />
+                      <span class="text-sm truncate min-w-0 flex-1">{ticket.user.email}</span>
+                    </div>
+                  <% else %>
+                    <span class="text-base-content/50">Unknown</span>
+                  <% end %>
+                </.table_default_cell>
+                <.table_default_cell class="hidden lg:table-cell">
+                  <%= if ticket.assigned_to do %>
+                    <span class="text-sm truncate block">{ticket.assigned_to.email}</span>
+                  <% else %>
+                    <span class="badge badge-ghost">Unassigned</span>
+                  <% end %>
+                </.table_default_cell>
+                <.table_default_cell>
+                  <%= case ticket.status do %>
+                    <% "open" -> %>
+                      <span class="badge badge-info whitespace-nowrap">Open</span>
+                    <% "in_progress" -> %>
+                      <span class="badge badge-warning whitespace-nowrap">In Progress</span>
+                    <% "resolved" -> %>
+                      <span class="badge badge-success whitespace-nowrap">Resolved</span>
+                    <% "closed" -> %>
+                      <span class="badge whitespace-nowrap">Closed</span>
+                  <% end %>
+                </.table_default_cell>
+                <.table_default_cell class="text-sm text-base-content/70">
+                  {Calendar.strftime(ticket.inserted_at, "%b %d, %Y")}
+                </.table_default_cell>
+                <.table_default_cell>
+                  <div class="flex items-center gap-1">
+                    <.link
+                      navigate={
+                        PhoenixKit.Utils.Routes.path(
+                          "/admin/customer-support/tickets/#{ticket.uuid}"
+                        )
+                      }
+                      class="btn btn-xs btn-outline btn-info tooltip tooltip-bottom"
+                      data-tip={gettext("View details")}
+                    >
+                      <.icon name="hero-eye" class="w-4 h-4" />
+                    </.link>
+                    <.link
+                      navigate={
+                        PhoenixKit.Utils.Routes.path(
+                          "/admin/customer-support/tickets/#{ticket.uuid}/edit"
+                        )
+                      }
+                      class="btn btn-xs btn-outline tooltip tooltip-bottom"
+                      data-tip={gettext("Edit ticket")}
+                    >
+                      <.icon name="hero-pencil" class="w-4 h-4" />
+                    </.link>
+                  </div>
+                </.table_default_cell>
+              </.table_default_row>
+            <% end %>
+          </.table_default_body>
+        </.table_default>
+      </div>
+
+    <%!-- Pagination --%>
+    <%= if @total_pages > 1 do %>
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="text-sm text-base-content/70">
+          Showing {(@page - 1) * @per_page + 1} to {min(@page * @per_page, @total_count)} of {@total_count} tickets
+        </div>
+        <div class="join">
+          <%= if @page > 1 do %>
+            <button
+              phx-click="change_page"
+              phx-value-page={@page - 1}
+              class="join-item btn btn-outline"
+            >
+              « Previous
+            </button>
+          <% end %>
+          <%= for page_num <- max(1, @page - 2)..min(@total_pages, @page + 2) do %>
+            <button
+              phx-click="change_page"
+              phx-value-page={page_num}
+              class={"join-item btn #{if page_num == @page, do: "btn-primary", else: "btn-outline"}"}
+            >
+              {page_num}
+            </button>
+          <% end %>
+          <%= if @page < @total_pages do %>
+            <button
+              phx-click="change_page"
+              phx-value-page={@page + 1}
+              class="join-item btn btn-outline"
+            >
+              Next »
+            </button>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

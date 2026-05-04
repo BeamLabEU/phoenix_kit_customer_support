@@ -1,6 +1,6 @@
 # PhoenixKitCustomerSupport
 
-Customer service ticketing module for [PhoenixKit](https://github.com/BeamLabEU/phoenix_kit).
+Customer support ticketing module for [PhoenixKit](https://github.com/BeamLabEU/phoenix_kit).
 
 Provides a full ticketing system: create tickets, track status, add comments and attachments, manage agents. Extracted from PhoenixKit core (>= 1.7.104).
 

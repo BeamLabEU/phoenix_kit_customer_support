@@ -1,0 +1,224 @@
+defmodule PhoenixKitCustomerSupport.Events do
+  @moduledoc """
+  PubSub events for PhoenixKit Customer Support system.
+
+  Broadcasts ticket-related events for real-time updates in LiveViews.
+  Uses `PhoenixKit.PubSub.Manager` for self-contained PubSub operations.
+
+  ## Topics
+
+  - `"customer_support:all"` - All tickets (for admins)
+  - `"customer_support:user:{user_uuid}"` - Tickets for specific user
+  - `"customer_support:{uuid}"` - Specific ticket (for detail view)
+
+  ## Events
+
+  ### Ticket Events
+  - `{:ticket_created, ticket}` - New ticket created
+  - `{:ticket_updated, ticket}` - Ticket updated
+  - `{:ticket_status_changed, ticket, old_status, new_status}` - Status transition
+  - `{:ticket_assigned, ticket, old_assignee_uuid, new_assignee_uuid}` - Assignment change
+  - `{:ticket_priority_changed, ticket, old_priority, new_priority}` - Priority change
+  - `{:tickets_bulk_updated, tickets, changes}` - Bulk update operation
+
+  ### Comment Events
+  - `{:comment_created, comment, ticket}` - Public comment added
+  - `{:internal_note_created, comment, ticket}` - Internal note added (staff only)
+
+  ## Usage Examples
+
+      # Subscribe to all ticket events (admin view)
+      PhoenixKitCustomerSupport.Events.subscribe_to_all()
+
+      # Subscribe to user's tickets
+      PhoenixKitCustomerSupport.Events.subscribe_to_user_tickets(user_uuid)
+
+      # Subscribe to specific ticket (detail view)
+      PhoenixKitCustomerSupport.Events.subscribe_to_ticket(ticket_uuid)
+
+      # Handle in LiveView
+      def handle_info({:ticket_created, ticket}, socket) do
+        # Update UI
+        {:noreply, socket}
+      end
+  """
+
+  alias PhoenixKit.PubSub.Manager
+
+  @all_topic "customer_support:all"
+
+  # ============================================================================
+  # TOPIC BUILDERS
+  # ============================================================================
+
+  @doc """
+  Returns the PubSub topic for a specific user's tickets.
+  """
+  def user_topic(user_uuid) when is_binary(user_uuid) do
+    "customer_support:user:#{user_uuid}"
+  end
+
+  @doc """
+  Returns the PubSub topic for a specific ticket.
+  """
+  def ticket_topic(ticket_uuid) when is_binary(ticket_uuid) do
+    "customer_support:#{ticket_uuid}"
+  end
+
+  # ============================================================================
+  # SUBSCRIPTION FUNCTIONS
+  # ============================================================================
+
+  @doc """
+  Subscribes to all ticket events (for admin views).
+  """
+  def subscribe_to_all do
+    Manager.subscribe(@all_topic)
+  end
+
+  @doc """
+  Alias for subscribe_to_all/0 for consistency with naming convention.
+  Subscribes to all ticket events (for admin views).
+  """
+  def subscribe_tickets, do: subscribe_to_all()
+
+  @doc """
+  Subscribes to ticket events for a specific user.
+  """
+  def subscribe_to_user_tickets(user_uuid) when is_binary(user_uuid) do
+    Manager.subscribe(user_topic(user_uuid))
+  end
+
+  @doc """
+  Subscribes to events for a specific ticket (for detail views).
+  """
+  def subscribe_to_ticket(ticket_uuid) when is_binary(ticket_uuid) do
+    Manager.subscribe(ticket_topic(ticket_uuid))
+  end
+
+  @doc """
+  Unsubscribes from all ticket events.
+  """
+  def unsubscribe_from_all do
+    Manager.unsubscribe(@all_topic)
+  end
+
+  @doc """
+  Unsubscribes from a specific user's ticket events.
+  """
+  def unsubscribe_from_user_tickets(user_uuid) when is_binary(user_uuid) do
+    Manager.unsubscribe(user_topic(user_uuid))
+  end
+
+  @doc """
+  Unsubscribes from a specific ticket's events.
+  """
+  def unsubscribe_from_ticket(ticket_uuid) when is_binary(ticket_uuid) do
+    Manager.unsubscribe(ticket_topic(ticket_uuid))
+  end
+
+  # ============================================================================
+  # TICKET BROADCASTS
+  # ============================================================================
+
+  @doc """
+  Broadcasts ticket created event.
+  """
+  def broadcast_ticket_created(ticket) do
+    broadcast(@all_topic, {:ticket_created, ticket})
+    broadcast(user_topic(ticket.user_uuid), {:ticket_created, ticket})
+    broadcast(ticket_topic(ticket.uuid), {:ticket_created, ticket})
+  end
+
+  @doc """
+  Broadcasts ticket updated event.
+  """
+  def broadcast_ticket_updated(ticket) do
+    broadcast(@all_topic, {:ticket_updated, ticket})
+    broadcast(user_topic(ticket.user_uuid), {:ticket_updated, ticket})
+    broadcast(ticket_topic(ticket.uuid), {:ticket_updated, ticket})
+  end
+
+  @doc """
+  Broadcasts ticket status changed event.
+  """
+  def broadcast_ticket_status_changed(ticket, old_status, new_status) do
+    message = {:ticket_status_changed, ticket, old_status, new_status}
+    broadcast(@all_topic, message)
+    broadcast(user_topic(ticket.user_uuid), message)
+    broadcast(ticket_topic(ticket.uuid), message)
+  end
+
+  @doc """
+  Broadcasts ticket assigned event.
+  """
+  def broadcast_ticket_assigned(ticket, old_assignee_uuid, new_assignee_uuid) do
+    message = {:ticket_assigned, ticket, old_assignee_uuid, new_assignee_uuid}
+    broadcast(@all_topic, message)
+    broadcast(user_topic(ticket.user_uuid), message)
+    broadcast(ticket_topic(ticket.uuid), message)
+
+    # Also broadcast to the new assignee's topic if assigned
+    if new_assignee_uuid do
+      broadcast(user_topic(new_assignee_uuid), message)
+    end
+  end
+
+  @doc """
+  Broadcasts ticket priority changed event.
+  """
+  def broadcast_ticket_priority_changed(ticket, old_priority, new_priority) do
+    message = {:ticket_priority_changed, ticket, old_priority, new_priority}
+    broadcast(@all_topic, message)
+    broadcast(user_topic(ticket.user_uuid), message)
+    broadcast(ticket_topic(ticket.uuid), message)
+  end
+
+  @doc """
+  Broadcasts tickets bulk updated event.
+  """
+  def broadcast_tickets_bulk_updated(tickets, changes) do
+    broadcast(@all_topic, {:tickets_bulk_updated, tickets, changes})
+
+    # Also broadcast to each affected user's topic
+    tickets
+    |> Enum.map(& &1.user_uuid)
+    |> Enum.uniq()
+    |> Enum.each(fn user_uuid ->
+      broadcast(user_topic(user_uuid), {:tickets_bulk_updated, tickets, changes})
+    end)
+  end
+
+  # ============================================================================
+  # COMMENT BROADCASTS
+  # ============================================================================
+
+  @doc """
+  Broadcasts public comment created event.
+  """
+  def broadcast_comment_created(comment, ticket) do
+    message = {:comment_created, comment, ticket}
+    broadcast(@all_topic, message)
+    broadcast(user_topic(ticket.user_uuid), message)
+    broadcast(ticket_topic(ticket.uuid), message)
+  end
+
+  @doc """
+  Broadcasts internal note created event (staff only).
+  """
+  def broadcast_internal_note_created(comment, ticket) do
+    message = {:internal_note_created, comment, ticket}
+    # Internal notes only broadcast to admin topic and ticket topic
+    # (not to user's personal topic since they shouldn't see internal notes)
+    broadcast(@all_topic, message)
+    broadcast(ticket_topic(ticket.uuid), message)
+  end
+
+  # ============================================================================
+  # PRIVATE HELPERS
+  # ============================================================================
+
+  defp broadcast(topic, message) do
+    Manager.broadcast(topic, message)
+  end
+end

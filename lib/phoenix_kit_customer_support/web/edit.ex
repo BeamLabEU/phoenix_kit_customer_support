@@ -1,0 +1,203 @@
+defmodule PhoenixKitCustomerSupport.Web.Edit do
+  @moduledoc """
+  LiveView for creating and editing support tickets.
+  """
+
+  use PhoenixKitWeb, :live_view
+
+  alias PhoenixKit.Modules.Storage
+  alias PhoenixKit.Settings
+  alias PhoenixKit.Users.Auth
+  alias PhoenixKit.Users.Roles
+  alias PhoenixKit.Utils.Routes
+  alias PhoenixKitCustomerSupport
+  alias PhoenixKitCustomerSupport.Ticket
+
+  @impl true
+  def mount(params, _session, socket) do
+    if PhoenixKitCustomerSupport.enabled?() do
+      current_user = socket.assigns[:phoenix_kit_current_user]
+      socket = load_ticket_or_new(socket, params, current_user)
+      {:ok, socket}
+    else
+      {:ok,
+       socket
+       |> put_flash(:error, "Tickets module is not enabled")
+       |> push_navigate(to: Routes.path("/admin"))}
+    end
+  end
+
+  defp load_ticket_or_new(socket, %{"id" => id}, current_user) do
+    case PhoenixKitCustomerSupport.get_ticket(id, preload: [:user, :assigned_to]) do
+      nil ->
+        socket
+        |> put_flash(:error, "Ticket not found")
+        |> push_navigate(to: Routes.path("/admin/customer-support/tickets"))
+
+      ticket ->
+        changeset = Ticket.changeset(ticket, %{})
+
+        socket
+        |> assign(:page_title, "Edit Ticket")
+        |> assign(:ticket, ticket)
+        |> assign(:changeset, changeset)
+        |> assign(:form, to_form(changeset))
+        |> assign(:current_user, current_user)
+        |> assign(:staff_users, list_support_staff())
+        |> assign(:action, :edit)
+    end
+  end
+
+  defp load_ticket_or_new(socket, _params, current_user) do
+    ticket = %Ticket{user_uuid: current_user.uuid}
+    changeset = Ticket.changeset(ticket, %{})
+
+    socket
+    |> assign(:page_title, "New Ticket")
+    |> assign(:ticket, ticket)
+    |> assign(:changeset, changeset)
+    |> assign(:form, to_form(changeset))
+    |> assign(:current_user, current_user)
+    |> assign(:all_users, list_all_users())
+    |> assign(:action, :new)
+    |> assign(:show_media_selector, false)
+    |> assign(:pending_file_uuids, [])
+    |> assign(:pending_files, [])
+    |> assign(
+      :attachments_enabled,
+      Settings.get_boolean_setting("customer_support_attachments_enabled", true)
+    )
+  end
+
+  @impl true
+  def handle_params(_params, _uri, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("validate", %{"ticket" => params}, socket) do
+    changeset =
+      socket.assigns.ticket
+      |> Ticket.changeset(params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, :form, to_form(changeset))}
+  end
+
+  @impl true
+  def handle_event("save", %{"ticket" => params}, socket) do
+    save_ticket(socket, socket.assigns.action, params)
+  end
+
+  @impl true
+  def handle_event("open_media_selector", _params, socket) do
+    {:noreply, assign(socket, :show_media_selector, true)}
+  end
+
+  @impl true
+  def handle_event("close_media_selector", _params, socket) do
+    {:noreply, assign(socket, :show_media_selector, false)}
+  end
+
+  @impl true
+  def handle_event("remove_pending_file", %{"uuid" => file_uuid}, socket) do
+    pending_file_uuids = Enum.reject(socket.assigns.pending_file_uuids, &(&1 == file_uuid))
+    pending_files = Enum.reject(socket.assigns.pending_files, &(&1.uuid == file_uuid))
+
+    {:noreply,
+     socket
+     |> assign(:pending_file_uuids, pending_file_uuids)
+     |> assign(:pending_files, pending_files)}
+  end
+
+  @impl true
+  def handle_info({:media_selected, file_uuids}, socket) do
+    # Load file details for display
+    pending_files =
+      Enum.map(file_uuids, fn file_uuid ->
+        Storage.get_file(file_uuid)
+      end)
+      |> Enum.reject(&is_nil/1)
+
+    {:noreply,
+     socket
+     |> assign(:show_media_selector, false)
+     |> assign(:pending_file_uuids, file_uuids)
+     |> assign(:pending_files, pending_files)}
+  end
+
+  defp save_ticket(socket, :new, params) do
+    current_user = socket.assigns.current_user
+    pending_file_uuids = socket.assigns.pending_file_uuids
+
+    # Use the selected user or default to current user
+    user_uuid =
+      case Map.get(params, "user_uuid") do
+        nil -> current_user.uuid
+        "" -> current_user.uuid
+        uuid -> uuid
+      end
+
+    try do
+      case PhoenixKitCustomerSupport.create_ticket(user_uuid, params) do
+        {:ok, ticket} ->
+          # Add pending attachments to the newly created ticket
+          Enum.each(pending_file_uuids, fn file_uuid ->
+            PhoenixKitCustomerSupport.add_attachment_to_ticket(ticket.uuid, file_uuid)
+          end)
+
+          {:noreply,
+           socket
+           |> put_flash(:info, "Ticket created successfully")
+           |> push_navigate(to: Routes.path("/admin/customer-support/tickets/#{ticket.uuid}"))}
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:noreply, assign(socket, :form, to_form(changeset))}
+      end
+    rescue
+      e ->
+        require Logger
+        Logger.error("Ticket save failed: #{Exception.message(e)}")
+        {:noreply, put_flash(socket, :error, "Something went wrong. Please try again.")}
+    end
+  end
+
+  defp save_ticket(socket, :edit, params) do
+    case PhoenixKitCustomerSupport.update_ticket(socket.assigns.ticket, params) do
+      {:ok, ticket} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Ticket updated successfully")
+         |> push_navigate(to: Routes.path("/admin/customer-support/tickets/#{ticket.uuid}"))}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, :form, to_form(changeset))}
+    end
+  rescue
+    e ->
+      require Logger
+      Logger.error("Ticket save failed: #{Exception.message(e)}")
+      {:noreply, put_flash(socket, :error, "Something went wrong. Please try again.")}
+  end
+
+  defp list_all_users do
+    # Get all users for customer selection
+    %{users: users} = Auth.list_users_paginated(page: 1, page_size: 1000)
+    users
+  rescue
+    _ -> []
+  end
+
+  defp list_support_staff do
+    # Get users who can handle tickets (for assignment)
+    %{users: users} = Auth.list_users_paginated(page: 1, page_size: 1000)
+
+    Enum.filter(users, fn user ->
+      Roles.user_has_role_owner?(user) or
+        Roles.user_has_role_admin?(user) or
+        Roles.user_has_role?(user, "SupportAgent")
+    end)
+  rescue
+    _ -> []
+  end
+end

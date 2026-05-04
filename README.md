@@ -48,6 +48,7 @@ The following settings keys control this module's behaviour. They are managed vi
 | Key | Default | Description |
 |-----|---------|-------------|
 | `customer_support_enabled` | `false` | Enables or disables the customer support module globally. |
+| `customer_support_per_page` | `20` | Number of tickets shown per page in admin and user list views. |
 | `customer_support_comments_enabled` | `true` | Allows users and agents to post comments on tickets. |
 | `customer_support_internal_notes_enabled` | `true` | Enables internal (agent-only) notes on tickets. |
 | `customer_support_attachments_enabled` | `true` | Allows file attachments to be added to tickets and comments. |

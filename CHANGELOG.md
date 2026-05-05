@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.1.1 - 2026-05-05
+
+### Fixed
+
+- **Ticket attachment uploads** (#2) — successful uploads were silently dropped because `Enum.filter(&match?({:ok, _}, &1))` against `consume_uploaded_entries/3` output never matched (the function unwraps `{:ok, val}` into bare `val`).
+- **Storage error crash** — returning `{:error, reason}` from the `consume_uploaded_entries/3` callback violates the `{:ok, term} | {:postpone, term}` contract and crashed the LiveView.
+- **Hang on invalid file type** — errored upload entries (`:not_accepted`, `:too_large`) now get cancelled before `consume_uploaded_entries/3`, which previously raised on them.
+- **`KeyError` after upload** — `file.original_name` → `file.original_file_name` in the admin pending-files list (the schema field name; the old reference crashed the LiveView and reset `pending_files`).
+- **Image classification** — files were hardcoded as `"document"`, so images never got bucket placement or thumbnail variants. Now classified via `PhoenixKitCustomerSupport.Uploads.file_type_from_mime/1` from `entry.client_type`.
+
+### Changed
+
+- Uploads are consumed in the LiveView `progress` callback (`auto_upload: true`), so files appear in "Attached files" immediately after drop instead of staying in "Uploading…" until form submit.
+- Admin attachment tiles wrap in `<a target="_blank" rel="noopener noreferrer">` to match user-side behaviour and click through to the original file.
+- Storage errors now surface in the UI via `:upload_errors` instead of being logged-only.
+- Internal: extracted `PhoenixKitCustomerSupport.Uploads.consume_entry/4` and `cancel_errored_entries/2` to deduplicate the upload pipeline across `Web.New`, `Web.UserNew`, and `Web.UserDetails` (~160 LOC removed).
+
 ## 0.1.0 - 2026-05-04
 
 Initial release of PhoenixKit Customer Support as a standalone Hex package, extracted from PhoenixKit core (>= 1.7.104).

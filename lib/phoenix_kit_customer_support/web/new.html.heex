@@ -146,7 +146,7 @@
               <%= for file <- @pending_files do %>
                 <div class="flex items-center gap-3 bg-base-200 p-2 rounded">
                   <.icon name="hero-document-check" class="w-5 h-5 text-success" />
-                  <span class="flex-1 text-sm truncate">{file.original_name}</span>
+                  <span class="flex-1 text-sm truncate">{file.original_file_name}</span>
                   <button
                     type="button"
                     phx-click="remove_pending_file"

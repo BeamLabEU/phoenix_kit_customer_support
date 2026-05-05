@@ -53,11 +53,62 @@ defmodule PhoenixKitCustomerSupport.Web.New do
       accept: ~w(.jpg .jpeg .png .gif .webp .pdf .doc .docx .txt),
       max_entries: 5,
       max_file_size: 10_000_000,
-      auto_upload: true
+      auto_upload: true,
+      progress: &handle_upload_progress/3
     )
   end
 
   defp maybe_allow_upload(socket, false), do: socket
+
+  defp handle_upload_progress(:attachments, entry, socket) do
+    if entry.done? do
+      socket = consume_done_entry(socket, entry)
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp consume_done_entry(socket, entry) do
+    current_user = socket.assigns.current_user
+
+    result =
+      consume_uploaded_entry(socket, entry, fn %{path: path} ->
+        ext = Path.extname(entry.client_name) |> String.replace_leading(".", "")
+        file_hash = Auth.calculate_file_hash(path)
+
+        case Storage.store_file_in_buckets(
+               path,
+               PhoenixKitCustomerSupport.Uploads.file_type_from_mime(entry.client_type),
+               current_user.uuid,
+               file_hash,
+               ext,
+               entry.client_name
+             ) do
+          {:ok, file, :duplicate} ->
+            Logger.info("Ticket attachment is duplicate with ID: #{file.uuid}")
+            {:ok, file}
+
+          {:ok, file} ->
+            Logger.info("Ticket attachment stored with ID: #{file.uuid}")
+            {:ok, file}
+
+          {:error, reason} ->
+            Logger.error("Storage Error: #{inspect(reason)}")
+            {:ok, nil}
+        end
+      end)
+
+    case result do
+      %{} = file ->
+        socket
+        |> assign(:pending_file_uuids, socket.assigns.pending_file_uuids ++ [file.uuid])
+        |> assign(:pending_files, socket.assigns.pending_files ++ [file])
+
+      _ ->
+        socket
+    end
+  end
 
   @impl true
   def handle_params(_params, _uri, socket) do
@@ -144,10 +195,24 @@ defmodule PhoenixKitCustomerSupport.Web.New do
     if socket.assigns.attachments_enabled and
          Map.has_key?(socket.assigns, :uploads) and
          socket.assigns.uploads.attachments.entries != [] do
-      do_process_uploads(socket)
+      socket
+      |> cancel_errored_entries(:attachments)
+      |> do_process_uploads()
     else
       socket
     end
+  end
+
+  defp cancel_errored_entries(socket, name) do
+    upload = Map.get(socket.assigns.uploads, name)
+
+    refs =
+      Enum.uniq(
+        Enum.map(upload.errors, fn {ref, _} -> ref end) ++
+          for(entry <- upload.entries, not entry.valid?, do: entry.ref)
+      )
+
+    Enum.reduce(refs, socket, &cancel_upload(&2, name, &1))
   end
 
   defp do_process_uploads(socket) do
@@ -163,7 +228,7 @@ defmodule PhoenixKitCustomerSupport.Web.New do
 
         case Storage.store_file_in_buckets(
                path,
-               "document",
+               PhoenixKitCustomerSupport.Uploads.file_type_from_mime(entry.client_type),
                user_uuid,
                file_hash,
                ext,
@@ -179,16 +244,11 @@ defmodule PhoenixKitCustomerSupport.Web.New do
 
           {:error, reason} ->
             Logger.error("Storage Error: #{inspect(reason)}")
-            {:error, reason}
+            {:ok, nil}
         end
       end)
 
-    # Extract successful uploads
-    new_files =
-      uploaded_files
-      |> Enum.filter(&match?({:ok, _}, &1))
-      |> Enum.map(fn {:ok, file} -> file end)
-
+    new_files = Enum.reject(uploaded_files, &is_nil/1)
     new_file_uuids = Enum.map(new_files, & &1.uuid)
 
     socket

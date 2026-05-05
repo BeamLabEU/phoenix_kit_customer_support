@@ -56,25 +56,36 @@
                 <%= for attachment <- @attachments do %>
                   <div class="relative group border rounded-lg overflow-hidden">
                     <%= if attachment.file do %>
-                      <%= if attachment.file.file_type == "image" do %>
-                        <img
-                          src={
-                            PhoenixKit.Modules.Storage.get_public_url_by_variant(
-                              attachment.file,
-                              "thumbnail"
-                            )
-                          }
-                          alt={attachment.caption || attachment.file.original_file_name}
-                          class="w-full h-24 object-cover"
-                        />
-                      <% else %>
-                        <div class="w-full h-24 flex items-center justify-center bg-base-200">
-                          <.icon name="hero-document" class="w-8 h-8 text-base-content/50" />
+                      <a
+                        href={
+                          PhoenixKit.Modules.Storage.get_public_url_by_variant(
+                            attachment.file,
+                            "original"
+                          )
+                        }
+                        target="_blank"
+                        class="block"
+                      >
+                        <%= if attachment.file.file_type == "image" do %>
+                          <img
+                            src={
+                              PhoenixKit.Modules.Storage.get_public_url_by_variant(
+                                attachment.file,
+                                "thumbnail"
+                              )
+                            }
+                            alt={attachment.caption || attachment.file.original_file_name}
+                            class="w-full h-24 object-cover"
+                          />
+                        <% else %>
+                          <div class="w-full h-24 flex items-center justify-center bg-base-200">
+                            <.icon name="hero-document" class="w-8 h-8 text-base-content/50" />
+                          </div>
+                        <% end %>
+                        <div class="p-2">
+                          <div class="text-xs truncate">{attachment.file.original_file_name}</div>
                         </div>
-                      <% end %>
-                      <div class="p-2">
-                        <div class="text-xs truncate">{attachment.file.original_file_name}</div>
-                      </div>
+                      </a>
                       <button
                         type="button"
                         phx-click="remove_attachment"

@@ -12,13 +12,10 @@ defmodule PhoenixKitCustomerSupport.Web.UserDetails do
   """
   use PhoenixKitWeb, :live_view
 
-  require Logger
-
-  alias PhoenixKit.Modules.Storage
   alias PhoenixKit.Settings
-  alias PhoenixKit.Users.Auth
   alias PhoenixKit.Utils.Routes
   alias PhoenixKitCustomerSupport
+  alias PhoenixKitCustomerSupport.Uploads
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -52,6 +49,7 @@ defmodule PhoenixKitCustomerSupport.Web.UserDetails do
               |> assign(:attachments_enabled, attachments_enabled)
               |> assign(:pending_comment_file_uuids, [])
               |> assign(:pending_comment_files, [])
+              |> assign(:upload_errors, [])
               |> load_public_comments()
               |> load_attachments()
               |> maybe_allow_comment_upload(attachments_enabled)
@@ -88,37 +86,8 @@ defmodule PhoenixKitCustomerSupport.Web.UserDetails do
   end
 
   defp consume_done_comment_entry(socket, entry) do
-    current_user = socket.assigns.current_user
-
-    result =
-      consume_uploaded_entry(socket, entry, fn %{path: path} ->
-        ext = Path.extname(entry.client_name) |> String.replace_leading(".", "")
-        file_hash = Auth.calculate_file_hash(path)
-
-        case Storage.store_file_in_buckets(
-               path,
-               PhoenixKitCustomerSupport.Uploads.file_type_from_mime(entry.client_type),
-               current_user.uuid,
-               file_hash,
-               ext,
-               entry.client_name
-             ) do
-          {:ok, file, :duplicate} ->
-            Logger.info("Comment attachment is duplicate with ID: #{file.uuid}")
-            {:ok, file}
-
-          {:ok, file} ->
-            Logger.info("Comment attachment stored with ID: #{file.uuid}")
-            {:ok, file}
-
-          {:error, reason} ->
-            Logger.error("Storage Error: #{inspect(reason)}")
-            {:ok, nil}
-        end
-      end)
-
-    case result do
-      %{} = file ->
+    case Uploads.consume_entry(socket, entry, socket.assigns.current_user, "Comment") do
+      {:ok, file} ->
         socket
         |> assign(
           :pending_comment_file_uuids,
@@ -126,8 +95,13 @@ defmodule PhoenixKitCustomerSupport.Web.UserDetails do
         )
         |> assign(:pending_comment_files, socket.assigns.pending_comment_files ++ [file])
 
-      _ ->
-        socket
+      {:error, name} ->
+        assign(
+          socket,
+          :upload_errors,
+          socket.assigns.upload_errors ++
+            [gettext("Failed to store \"%{name}\". Please try again.", name: name)]
+        )
     end
   end
 
@@ -145,8 +119,9 @@ defmodule PhoenixKitCustomerSupport.Web.UserDetails do
     if content == "" do
       {:noreply, put_flash(socket, :error, gettext("Comment cannot be empty"))}
     else
-      # Process any pending uploads first
-      socket = process_comment_uploads(socket)
+      # Files are already consumed via the progress callback; clear errored
+      # entries so they don't linger in the upload UI on next render.
+      socket = maybe_cancel_errored(socket)
       pending_file_uuids = socket.assigns.pending_comment_file_uuids
 
       # Users can only add public comments (is_internal is always false)
@@ -222,71 +197,11 @@ defmodule PhoenixKitCustomerSupport.Web.UserDetails do
     assign(socket, :ticket, ticket)
   end
 
-  defp process_comment_uploads(socket) do
-    if socket.assigns.attachments_enabled and
-         Map.has_key?(socket.assigns, :uploads) and
-         socket.assigns.uploads.comment_attachments.entries != [] do
-      socket
-      |> cancel_errored_entries(:comment_attachments)
-      |> do_process_comment_uploads()
+  defp maybe_cancel_errored(socket) do
+    if socket.assigns.attachments_enabled and Map.has_key?(socket.assigns, :uploads) do
+      Uploads.cancel_errored_entries(socket, :comment_attachments)
     else
       socket
     end
-  end
-
-  defp cancel_errored_entries(socket, name) do
-    upload = Map.get(socket.assigns.uploads, name)
-
-    refs =
-      Enum.uniq(
-        Enum.map(upload.errors, fn {ref, _} -> ref end) ++
-          for(entry <- upload.entries, not entry.valid?, do: entry.ref)
-      )
-
-    Enum.reduce(refs, socket, &cancel_upload(&2, name, &1))
-  end
-
-  defp do_process_comment_uploads(socket) do
-    current_user = socket.assigns.current_user
-
-    uploaded_files =
-      consume_uploaded_entries(socket, :comment_attachments, fn %{path: path}, entry ->
-        ext = Path.extname(entry.client_name) |> String.replace_leading(".", "")
-        user_uuid = current_user.uuid
-
-        {:ok, _stat} = File.stat(path)
-        file_hash = Auth.calculate_file_hash(path)
-
-        case Storage.store_file_in_buckets(
-               path,
-               PhoenixKitCustomerSupport.Uploads.file_type_from_mime(entry.client_type),
-               user_uuid,
-               file_hash,
-               ext,
-               entry.client_name
-             ) do
-          {:ok, file, :duplicate} ->
-            Logger.info("Comment attachment is duplicate with ID: #{file.uuid}")
-            {:ok, file}
-
-          {:ok, file} ->
-            Logger.info("Comment attachment stored with ID: #{file.uuid}")
-            {:ok, file}
-
-          {:error, reason} ->
-            Logger.error("Storage Error: #{inspect(reason)}")
-            {:ok, nil}
-        end
-      end)
-
-    new_files = Enum.reject(uploaded_files, &is_nil/1)
-    new_file_uuids = Enum.map(new_files, & &1.uuid)
-
-    socket
-    |> assign(
-      :pending_comment_file_uuids,
-      socket.assigns.pending_comment_file_uuids ++ new_file_uuids
-    )
-    |> assign(:pending_comment_files, socket.assigns.pending_comment_files ++ new_files)
   end
 end

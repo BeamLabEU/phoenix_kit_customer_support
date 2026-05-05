@@ -122,6 +122,14 @@
                   </span>
                 </div>
               <% end %>
+
+              <%!-- Storage Errors --%>
+              <%= for error <- @upload_errors do %>
+                <div class="alert alert-error mb-2">
+                  <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
+                  <span>{error}</span>
+                </div>
+              <% end %>
             <% end %>
 
             <%!-- Drag and Drop Zone --%>

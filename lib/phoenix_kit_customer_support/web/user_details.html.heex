@@ -70,6 +70,7 @@
                           )
                         }
                         target="_blank"
+                        rel="noopener noreferrer"
                         class="block"
                       >
                         <img
@@ -92,6 +93,7 @@
                           )
                         }
                         target="_blank"
+                        rel="noopener noreferrer"
                         class="block"
                       >
                         <div class="w-full h-24 flex items-center justify-center bg-base-200">
@@ -218,6 +220,14 @@
                         {inspect(msg)}
                     <% end %>
                   </span>
+                </div>
+              <% end %>
+
+              <%!-- Storage Errors --%>
+              <%= for error <- @upload_errors do %>
+                <div class="alert alert-error">
+                  <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
+                  <span>{error}</span>
                 </div>
               <% end %>
 

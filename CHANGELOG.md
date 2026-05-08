@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.1.1 - 2026-05-08
+
+### Added
+- Per-module Gettext backend (`PhoenixKitCustomerSupport.Gettext`) with `en`/`ru`/`et` catalogues for all admin sidebar tab labels. Requires `phoenix_kit` release that ships the `gettext_backend` Tab API ([BeamLabEU/phoenix_kit#522](https://github.com/BeamLabEU/phoenix_kit/pull/522)); on older releases tabs render raw English (graceful degradation).
+
 ## 0.1.0 - 2026-05-04
 
 Initial release of PhoenixKit Customer Support as a standalone Hex package, extracted from PhoenixKit core (>= 1.7.104).

@@ -3,8 +3,9 @@ defmodule PhoenixKitCustomerSupport.I18nTest do
   Smoke test for the per-module i18n wiring.
 
   Confirms that:
-    * Every admin tab registered by `PhoenixKitCustomerSupport.admin_tabs/0`
-      carries `gettext_backend: PhoenixKitCustomerSupport.Gettext`.
+    * Every tab registered by `PhoenixKitCustomerSupport.admin_tabs/0`,
+      `settings_tabs/0`, and `user_dashboard_tabs/0` carries
+      `gettext_backend: PhoenixKitCustomerSupport.Gettext`.
     * Locale switching on the module's own backend produces translated
       labels for at least one well-known msgid (regression guard for
       the `priv/gettext/<locale>/LC_MESSAGES/default.po` shipping with
@@ -31,9 +32,19 @@ defmodule PhoenixKitCustomerSupport.I18nTest do
     :ok
   end
 
-  describe "admin_tabs/0 wiring" do
-    test "every tab carries the module's own gettext backend" do
-      for tab <- PhoenixKitCustomerSupport.admin_tabs() do
+  describe "tab wiring" do
+    test "every tab from every callback carries the module's own gettext backend" do
+      tabs =
+        PhoenixKitCustomerSupport.admin_tabs() ++
+          PhoenixKitCustomerSupport.settings_tabs() ++
+          PhoenixKitCustomerSupport.user_dashboard_tabs()
+
+      # Sanity: catch a regression where a callback silently returns []
+      # (which would make the for-loop a no-op and pass vacuously).
+      assert length(tabs) >= 4,
+             "expected at least 4 tabs across admin/settings/user_dashboard callbacks, got #{length(tabs)}"
+
+      for tab <- tabs do
         assert tab.gettext_backend == CustomerSupportGettext,
                "Tab #{inspect(tab.id)} is missing or wrong gettext_backend " <>
                  "(got #{inspect(tab.gettext_backend)})"
@@ -47,21 +58,27 @@ defmodule PhoenixKitCustomerSupport.I18nTest do
     test "ru locale resolves the parent 'Customer Support' tab to 'Поддержка клиентов'" do
       Gettext.put_locale(CustomerSupportGettext, "ru")
 
-      parent = Enum.find(PhoenixKitCustomerSupport.admin_tabs(), &(&1.id == :admin_customer_support))
+      parent =
+        Enum.find(PhoenixKitCustomerSupport.admin_tabs(), &(&1.id == :admin_customer_support))
+
       assert Tab.localized_label(parent) == "Поддержка клиентов"
     end
 
     test "et locale resolves the parent 'Customer Support' tab to 'Klienditugi'" do
       Gettext.put_locale(CustomerSupportGettext, "et")
 
-      parent = Enum.find(PhoenixKitCustomerSupport.admin_tabs(), &(&1.id == :admin_customer_support))
+      parent =
+        Enum.find(PhoenixKitCustomerSupport.admin_tabs(), &(&1.id == :admin_customer_support))
+
       assert Tab.localized_label(parent) == "Klienditugi"
     end
 
     test "unknown locale falls back to the raw msgid" do
       Gettext.put_locale(CustomerSupportGettext, "zz")
 
-      parent = Enum.find(PhoenixKitCustomerSupport.admin_tabs(), &(&1.id == :admin_customer_support))
+      parent =
+        Enum.find(PhoenixKitCustomerSupport.admin_tabs(), &(&1.id == :admin_customer_support))
+
       assert Tab.localized_label(parent) == parent.label
     end
   end

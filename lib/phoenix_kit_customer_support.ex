@@ -554,8 +554,6 @@ defmodule PhoenixKitCustomerSupport do
       %{email: email} -> email
       _ -> user_uuid
     end
-  rescue
-    _ -> user_uuid
   end
 
   @doc """

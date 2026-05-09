@@ -55,7 +55,7 @@ defmodule PhoenixKitCustomerSupport.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib priv .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
+      files: ~w(lib priv/gettext .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
     ]
   end
 

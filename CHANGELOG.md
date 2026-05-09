@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.1.2 - 2026-05-09
+
+### Added
+
+- **Per-module Gettext backend** (#3) — `PhoenixKitCustomerSupport.Gettext` owns the translation catalogues for the four admin/user sidebar tab labels registered by this module. Locale is set per-request by the parent app; this module handles msgid lookup against the active locale.
+- Translations for all sidebar tab msgids in `en` / `ru` / `et` (`priv/gettext/<locale>/LC_MESSAGES/default.po`).
+- `lib/phoenix_kit_customer_support.ex` — `gettext_backend: PhoenixKitCustomerSupport.Gettext` on every `Tab.new!` call (`admin_tabs/0`, `settings_tabs/0`, `user_dashboard_tabs/0`).
+- `test/phoenix_kit_customer_support/i18n_test.exs` — smoke test for backend wiring across all three tab callbacks and locale resolution; conditionally excluded via `:requires_phoenix_kit_i18n_api` when the resolved `phoenix_kit` predates `Tab.localized_label/1`.
+
+### Changed
+
+- **Ticket assignment status history** — `assign_ticket/3` now always records a status-history row on assignment, even when the ticket status doesn't change (encoded as `from == to`); note text now includes the assignee's email via `describe_user/1`.
+- `mix.exs` — `:gettext` added to `extra_applications` and `deps`; `priv/gettext` added to package `files:` so catalogues ship to Hex consumers.
+
+### Fixed
+
+- `mix.exs` — package `files:` narrowed from `priv` to `priv/gettext` so future `priv/` content doesn't ship to Hex unintentionally.
+- `describe_user/1` — dropped catch-all `rescue` that masked real DB faults inside `repo().transaction/1` (`Repo.get/2` already returns `nil` for missing rows).
+- `test_helper.exs` — `psql` invocation wrapped in `try/rescue` so the helper degrades gracefully when `psql` isn't on PATH.
+
 ## 0.1.1 - 2026-05-05
 
 ### Fixed

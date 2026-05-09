@@ -9,12 +9,11 @@ defmodule PhoenixKitCustomerSupport.Web.New do
 
   require Logger
 
-  alias PhoenixKit.Modules.Storage
   alias PhoenixKit.Settings
-  alias PhoenixKit.Users.Auth
   alias PhoenixKit.Utils.Routes
   alias PhoenixKitCustomerSupport
   alias PhoenixKitCustomerSupport.Ticket
+  alias PhoenixKitCustomerSupport.Uploads
 
   @impl true
   def mount(_params, _session, socket) do
@@ -62,51 +61,26 @@ defmodule PhoenixKitCustomerSupport.Web.New do
 
   defp handle_upload_progress(:attachments, entry, socket) do
     if entry.done? do
-      socket = consume_done_entry(socket, entry)
-      {:noreply, socket}
+      {:noreply, consume_done_entry(socket, entry)}
     else
       {:noreply, socket}
     end
   end
 
   defp consume_done_entry(socket, entry) do
-    current_user = socket.assigns.current_user
-
-    result =
-      consume_uploaded_entry(socket, entry, fn %{path: path} ->
-        ext = Path.extname(entry.client_name) |> String.replace_leading(".", "")
-        file_hash = Auth.calculate_file_hash(path)
-
-        case Storage.store_file_in_buckets(
-               path,
-               PhoenixKitCustomerSupport.Uploads.file_type_from_mime(entry.client_type),
-               current_user.uuid,
-               file_hash,
-               ext,
-               entry.client_name
-             ) do
-          {:ok, file, :duplicate} ->
-            Logger.info("Ticket attachment is duplicate with ID: #{file.uuid}")
-            {:ok, file}
-
-          {:ok, file} ->
-            Logger.info("Ticket attachment stored with ID: #{file.uuid}")
-            {:ok, file}
-
-          {:error, reason} ->
-            Logger.error("Storage Error: #{inspect(reason)}")
-            {:ok, nil}
-        end
-      end)
-
-    case result do
-      %{} = file ->
+    case Uploads.consume_entry(socket, entry, socket.assigns.current_user, "Ticket") do
+      {:ok, file} ->
         socket
         |> assign(:pending_file_uuids, socket.assigns.pending_file_uuids ++ [file.uuid])
         |> assign(:pending_files, socket.assigns.pending_files ++ [file])
 
-      _ ->
-        socket
+      {:error, name} ->
+        assign(
+          socket,
+          :upload_errors,
+          socket.assigns.upload_errors ++
+            [gettext("Failed to store \"%{name}\". Please try again.", name: name)]
+        )
     end
   end
 
@@ -135,8 +109,9 @@ defmodule PhoenixKitCustomerSupport.Web.New do
   def handle_event("save", %{"ticket" => params}, socket) do
     current_user = socket.assigns.current_user
 
-    # First, process any pending uploads
-    socket = process_pending_uploads(socket)
+    # Files are already consumed via the progress callback; just clear any
+    # errored entries so they don't linger in the upload UI on next render.
+    socket = maybe_cancel_errored(socket)
     pending_file_uuids = socket.assigns.pending_file_uuids
 
     # Determine the user for the ticket
@@ -191,68 +166,11 @@ defmodule PhoenixKitCustomerSupport.Web.New do
      |> assign(:pending_files, pending_files)}
   end
 
-  defp process_pending_uploads(socket) do
-    if socket.assigns.attachments_enabled and
-         Map.has_key?(socket.assigns, :uploads) and
-         socket.assigns.uploads.attachments.entries != [] do
-      socket
-      |> cancel_errored_entries(:attachments)
-      |> do_process_uploads()
+  defp maybe_cancel_errored(socket) do
+    if socket.assigns.attachments_enabled and Map.has_key?(socket.assigns, :uploads) do
+      Uploads.cancel_errored_entries(socket, :attachments)
     else
       socket
     end
-  end
-
-  defp cancel_errored_entries(socket, name) do
-    upload = Map.get(socket.assigns.uploads, name)
-
-    refs =
-      Enum.uniq(
-        Enum.map(upload.errors, fn {ref, _} -> ref end) ++
-          for(entry <- upload.entries, not entry.valid?, do: entry.ref)
-      )
-
-    Enum.reduce(refs, socket, &cancel_upload(&2, name, &1))
-  end
-
-  defp do_process_uploads(socket) do
-    current_user = socket.assigns.current_user
-
-    uploaded_files =
-      consume_uploaded_entries(socket, :attachments, fn %{path: path}, entry ->
-        ext = Path.extname(entry.client_name) |> String.replace_leading(".", "")
-        user_uuid = current_user.uuid
-
-        {:ok, _stat} = File.stat(path)
-        file_hash = Auth.calculate_file_hash(path)
-
-        case Storage.store_file_in_buckets(
-               path,
-               PhoenixKitCustomerSupport.Uploads.file_type_from_mime(entry.client_type),
-               user_uuid,
-               file_hash,
-               ext,
-               entry.client_name
-             ) do
-          {:ok, file, :duplicate} ->
-            Logger.info("Ticket attachment is duplicate with ID: #{file.uuid}")
-            {:ok, file}
-
-          {:ok, file} ->
-            Logger.info("Ticket attachment stored with ID: #{file.uuid}")
-            {:ok, file}
-
-          {:error, reason} ->
-            Logger.error("Storage Error: #{inspect(reason)}")
-            {:ok, nil}
-        end
-      end)
-
-    new_files = Enum.reject(uploaded_files, &is_nil/1)
-    new_file_uuids = Enum.map(new_files, & &1.uuid)
-
-    socket
-    |> assign(:pending_file_uuids, socket.assigns.pending_file_uuids ++ new_file_uuids)
-    |> assign(:pending_files, socket.assigns.pending_files ++ new_files)
   end
 end

@@ -1,0 +1,25 @@
+## This file is the .pot template for the phoenix_kit_customer_support
+## "default" Gettext domain. msgids here are tab/group labels and
+## tooltips registered with `gettext_backend: PhoenixKitCustomerSupport.Gettext`.
+##
+## Tab labels are not extracted automatically by `mix gettext.extract`
+## (they live as plain strings in `Tab.new!(label: ...)`, not in a
+## `dgettext` macro call), so this template is maintained manually.
+## When you add a new translatable label, add the msgid here and run
+## `mix gettext.merge priv/gettext` to propagate to every locale's
+## `default.po`.
+
+msgid ""
+msgstr ""
+
+#: lib/phoenix_kit_customer_support.ex
+msgid "Customer Support"
+msgstr ""
+
+#: lib/phoenix_kit_customer_support.ex
+msgid "Tickets"
+msgstr ""
+
+#: lib/phoenix_kit_customer_support.ex
+msgid "My Tickets"
+msgstr ""

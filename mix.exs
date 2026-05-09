@@ -25,7 +25,7 @@ defmodule PhoenixKitCustomerSupport.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :phoenix_kit]
+      extra_applications: [:logger, :gettext, :phoenix_kit]
     ]
   end
 
@@ -43,6 +43,7 @@ defmodule PhoenixKitCustomerSupport.MixProject do
   defp deps do
     [
       {:phoenix_kit, "~> 1.7"},
+      {:gettext, "~> 1.0"},
       {:phoenix_live_view, "~> 1.1"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -54,7 +55,7 @@ defmodule PhoenixKitCustomerSupport.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
+      files: ~w(lib priv .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
     ]
   end
 

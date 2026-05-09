@@ -217,7 +217,8 @@ defmodule PhoenixKitCustomerSupport do
         match: :prefix,
         group: :admin_modules,
         subtab_display: :when_active,
-        highlight_with_subtabs: false
+        highlight_with_subtabs: false,
+        gettext_backend: PhoenixKitCustomerSupport.Gettext
       ),
       Tab.new!(
         id: :admin_customer_support_tickets,
@@ -228,7 +229,8 @@ defmodule PhoenixKitCustomerSupport do
         level: :admin,
         permission: "customer_support",
         parent: :admin_customer_support,
-        match: :prefix
+        match: :prefix,
+        gettext_backend: PhoenixKitCustomerSupport.Gettext
       )
     ]
   end
@@ -244,7 +246,8 @@ defmodule PhoenixKitCustomerSupport do
         priority: 923,
         level: :admin,
         parent: :admin_settings,
-        permission: "customer_support"
+        permission: "customer_support",
+        gettext_backend: PhoenixKitCustomerSupport.Gettext
       )
     ]
   end
@@ -259,7 +262,8 @@ defmodule PhoenixKitCustomerSupport do
         path: "customer-support/tickets",
         priority: 800,
         match: :prefix,
-        group: :account
+        group: :account,
+        gettext_backend: PhoenixKitCustomerSupport.Gettext
       )
     ]
   end
@@ -519,15 +523,21 @@ defmodule PhoenixKitCustomerSupport do
 
       case update_ticket(ticket, attrs) do
         {:ok, updated_ticket} ->
-          if new_status do
-            create_status_history(
-              ticket.uuid,
-              changed_by_uuid,
-              ticket.status,
-              new_status,
-              "Assigned to handler"
-            )
-          end
+          handler_label = describe_user(handler_uuid)
+
+          # Always log the assignment in status history. If status also changed,
+          # encode the transition as from→to; otherwise from == to so the template
+          # can render it as a pure assignment event.
+          {from_status, to_status} =
+            if new_status, do: {ticket.status, new_status}, else: {ticket.status, ticket.status}
+
+          create_status_history(
+            ticket.uuid,
+            changed_by_uuid,
+            from_status,
+            to_status,
+            "Assigned to #{handler_label}"
+          )
 
           Events.broadcast_ticket_assigned(updated_ticket, old_assignee_uuid, handler_uuid)
 
@@ -537,6 +547,15 @@ defmodule PhoenixKitCustomerSupport do
           repo().rollback(changeset)
       end
     end)
+  end
+
+  defp describe_user(user_uuid) when is_binary(user_uuid) do
+    case repo().get(PhoenixKit.Users.Auth.User, user_uuid) do
+      %{email: email} -> email
+      _ -> user_uuid
+    end
+  rescue
+    _ -> user_uuid
   end
 
   @doc """

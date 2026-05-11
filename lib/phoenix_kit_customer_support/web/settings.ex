@@ -4,6 +4,7 @@ defmodule PhoenixKitCustomerSupport.Web.Settings do
   """
 
   use PhoenixKitWeb, :live_view
+  use Gettext, backend: PhoenixKitCustomerSupport.Gettext
 
   alias PhoenixKit.Settings
   alias PhoenixKitCustomerSupport

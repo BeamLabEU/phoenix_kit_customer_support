@@ -21,3 +21,88 @@ msgstr "Tickets"
 #: lib/phoenix_kit_customer_support.ex
 msgid "My Tickets"
 msgstr "My Tickets"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:4
+#, elixir-autogen, elixir-format
+msgid "Customer Support Settings"
+msgstr "Customer Support Settings"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:5
+#, elixir-autogen, elixir-format
+msgid "Configure customer support module behavior and features"
+msgstr "Configure customer support module behavior and features"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:14
+#, elixir-autogen, elixir-format
+msgid "Statistics"
+msgstr "Statistics"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:18
+#, elixir-autogen, elixir-format
+msgid "Total"
+msgstr "Total"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:22
+#, elixir-autogen, elixir-format
+msgid "Open"
+msgstr "Open"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:26
+#, elixir-autogen, elixir-format
+msgid "In Progress"
+msgstr "In Progress"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:30
+#, elixir-autogen, elixir-format
+msgid "Resolved"
+msgstr "Resolved"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:42
+#, elixir-autogen, elixir-format
+msgid "Module Configuration"
+msgstr "Module Configuration"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:48
+#, elixir-autogen, elixir-format
+msgid "Tickets Per Page"
+msgstr "Tickets Per Page"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:67
+#, elixir-autogen, elixir-format
+msgid "Features"
+msgstr "Features"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:78
+#, elixir-autogen, elixir-format
+msgid "Internal Notes"
+msgstr "Internal Notes"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:80
+#, elixir-autogen, elixir-format
+msgid "Allow staff-only notes that are hidden from customers"
+msgstr "Allow staff-only notes that are hidden from customers"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:95
+#, elixir-autogen, elixir-format
+msgid "Attachments"
+msgstr "Attachments"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:97
+#, elixir-autogen, elixir-format
+msgid "Allow uploading files to tickets and comments"
+msgstr "Allow uploading files to tickets and comments"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:109
+#, elixir-autogen, elixir-format
+msgid "Workflow"
+msgstr "Workflow"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:119
+#, elixir-autogen, elixir-format
+msgid "Allow Reopening Tickets"
+msgstr "Allow Reopening Tickets"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:121
+#, elixir-autogen, elixir-format
+msgid "Allow resolved or closed tickets to be reopened"
+msgstr "Allow resolved or closed tickets to be reopened"

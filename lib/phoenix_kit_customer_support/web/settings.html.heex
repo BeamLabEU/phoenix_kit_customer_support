@@ -1,33 +1,33 @@
 <div class="container flex flex-col mx-auto px-4 py-6">
   <.admin_page_header
     back={PhoenixKit.Utils.Routes.path("/admin/settings")}
-    title="Customer Support Settings"
-    subtitle="Configure customer support module behavior and features"
+    title={gettext("Customer Support Settings")}
+    subtitle={gettext("Configure customer support module behavior and features")}
   />
 
   <%!-- Main Content --%>
-  <div class="max-w-4xl mx-auto space-y-8">
+  <div class="space-y-8">
     <%!-- Stats Overview --%>
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
         <h2 class="card-title text-2xl mb-4">
-          <.icon name="hero-chart-bar" class="w-6 h-6" /> Statistics
+          <.icon name="hero-chart-bar" class="w-6 h-6" /> {gettext("Statistics")}
         </h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="stat bg-base-200 rounded-lg p-4">
-            <div class="stat-title text-xs">Total</div>
+            <div class="stat-title text-xs">{gettext("Total")}</div>
             <div class="stat-value text-2xl">{@stats.total}</div>
           </div>
           <div class="stat bg-info/20 rounded-lg p-4">
-            <div class="stat-title text-xs">Open</div>
+            <div class="stat-title text-xs">{gettext("Open")}</div>
             <div class="stat-value text-2xl text-info">{@stats.open}</div>
           </div>
           <div class="stat bg-warning/20 rounded-lg p-4">
-            <div class="stat-title text-xs">In Progress</div>
+            <div class="stat-title text-xs">{gettext("In Progress")}</div>
             <div class="stat-value text-2xl text-warning">{@stats.in_progress}</div>
           </div>
           <div class="stat bg-success/20 rounded-lg p-4">
-            <div class="stat-title text-xs">Resolved</div>
+            <div class="stat-title text-xs">{gettext("Resolved")}</div>
             <div class="stat-value text-2xl text-success">{@stats.resolved}</div>
           </div>
         </div>
@@ -38,13 +38,13 @@
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
         <h2 class="card-title text-2xl mb-4">
-          <.icon name="hero-cog-6-tooth" class="w-6 h-6" /> Module Configuration
+          <.icon name="hero-cog-6-tooth" class="w-6 h-6" /> {gettext("Module Configuration")}
         </h2>
 
         <%!-- Per Page --%>
         <div class="form-control">
           <label class="label">
-            <span class="label-text font-medium">Tickets Per Page</span>
+            <span class="label-text font-medium">{gettext("Tickets Per Page")}</span>
           </label>
           <label class="select w-full max-w-xs">
             <select
@@ -65,7 +65,7 @@
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
         <h2 class="card-title text-2xl mb-4">
-          <.icon name="hero-sparkles" class="w-6 h-6" /> Features
+          <.icon name="hero-sparkles" class="w-6 h-6" /> {gettext("Features")}
         </h2>
 
         <%!-- Internal Notes --%>
@@ -78,9 +78,9 @@
               phx-click="toggle_internal_notes"
             />
             <div>
-              <span class="label-text font-medium">Internal Notes</span>
+              <span class="label-text font-medium">{gettext("Internal Notes")}</span>
               <p class="text-sm text-base-content/50">
-                Allow staff-only notes that are hidden from customers
+                {gettext("Allow staff-only notes that are hidden from customers")}
               </p>
             </div>
           </label>
@@ -98,9 +98,9 @@
               phx-click="toggle_attachments"
             />
             <div>
-              <span class="label-text font-medium">Attachments</span>
+              <span class="label-text font-medium">{gettext("Attachments")}</span>
               <p class="text-sm text-base-content/50">
-                Allow uploading files to tickets and comments
+                {gettext("Allow uploading files to tickets and comments")}
               </p>
             </div>
           </label>
@@ -112,7 +112,7 @@
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
         <h2 class="card-title text-2xl mb-4">
-          <.icon name="hero-arrow-path" class="w-6 h-6" /> Workflow
+          <.icon name="hero-arrow-path" class="w-6 h-6" /> {gettext("Workflow")}
         </h2>
 
         <%!-- Allow Reopen --%>
@@ -125,9 +125,9 @@
               phx-click="toggle_allow_reopen"
             />
             <div>
-              <span class="label-text font-medium">Allow Reopening Tickets</span>
+              <span class="label-text font-medium">{gettext("Allow Reopening Tickets")}</span>
               <p class="text-sm text-base-content/50">
-                Allow resolved or closed tickets to be reopened
+                {gettext("Allow resolved or closed tickets to be reopened")}
               </p>
             </div>
           </label>

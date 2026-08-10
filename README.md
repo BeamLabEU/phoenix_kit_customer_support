@@ -28,6 +28,8 @@ Add to the host app's `mix.exs`:
 
 Then `mix deps.get`. The module appears in the admin Modules page and sidebar automatically via `PhoenixKit.Module` auto-discovery.
 
+Requires PhoenixKit core `>= 1.7.189 and < 3.0.0` — 1.7.189 is the floor for the `Tab` gettext backend API, and the range spans core 2.x deliberately (see the pin comment in `mix.exs`).
+
 ## Module integration
 
 The package registers itself with PhoenixKit's module system. No manual router wiring needed — admin routes are auto-discovered at compile time via `route_module/0`.

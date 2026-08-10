@@ -10,7 +10,7 @@ defmodule PhoenixKitCustomerSupport.TicketAttachment do
 
   - `ticket_uuid` - Reference to ticket (if attached to ticket directly)
   - `comment_uuid` - Reference to comment (if attached to comment)
-  - `file_uuid` - Reference to the uploaded file (PhoenixKit.Storage.File)
+  - `file_uuid` - Reference to the uploaded file (PhoenixKit.Modules.Storage.File)
   - `position` - Display order (1, 2, 3, etc.)
   - `caption` - Optional caption/alt text
 

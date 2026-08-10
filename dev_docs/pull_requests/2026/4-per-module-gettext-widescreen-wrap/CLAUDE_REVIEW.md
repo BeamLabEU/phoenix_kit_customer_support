@@ -15,7 +15,7 @@
 
 ---
 
-## Verdict: ~~REQUEST CHANGES~~ → no blockers (after `5688c7a`)
+## Review-time verdict: ~~REQUEST CHANGES~~ → no blockers (after `5688c7a`)
 
 Three originally-blocking items; only #1 was treated as blocking. After follow-up commit `5688c7a` the HARD RULE block is cleared and items #2 and #3 were downgraded to advisory by the orchestrator (left for the maintainer to decide on cleanup scope).
 

@@ -1,7 +1,7 @@
 defmodule PhoenixKitCustomerSupport.MixProject do
   use Mix.Project
 
-  @version "0.1.2"
+  @version "0.2.0"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_customer_support"
 
   def project do
@@ -50,15 +50,13 @@ defmodule PhoenixKitCustomerSupport.MixProject do
 
   defp deps do
     [
-      # Core pin spans majors on purpose. `~> 1.7.189` means `>= 1.7.189 and
-      # < 1.8.0`, which core 2.0.0 cannot satisfy — a host on `{:phoenix_kit,
-      # "~> 2.0"}` plus this module is an unsolvable dependency set and
-      # `mix deps.get` fails outright, with no degraded mode. 1.7.189 stays the
-      # floor (Tab gettext_backend API); the ceiling moves to the next major.
-      # Nothing here touches migration internals, so the widening is the whole
-      # change — see the "Feature modules need a widened pin" note in core's
-      # 2.0.0 CHANGELOG.
-      {:phoenix_kit, ">= 1.7.189 and < 3.0.0"},
+      # Core 2.x only. Keep this a TWO-segment `~> 2.0`: a three-segment
+      # `~> 2.0.x` would expand to `< 2.1.0` and exclude every later core
+      # minor, which is the failure mode `test/core_pin_conformance_test.exs`
+      # guards. Nothing here touches core migration internals — this module
+      # declares no `migration_module/0` and its tables come from core's own
+      # chain — so the requirement is the whole compatibility contract.
+      {:phoenix_kit, "~> 2.0"},
       {:gettext, "~> 1.0"},
       {:phoenix_live_view, "~> 1.1"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

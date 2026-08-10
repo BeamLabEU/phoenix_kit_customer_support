@@ -23,12 +23,12 @@ Provides a full ticketing system: create tickets, track status, add comments and
 Add to the host app's `mix.exs`:
 
 ```elixir
-{:phoenix_kit_customer_support, "~> 0.1"}
+{:phoenix_kit_customer_support, "~> 0.2"}
 ```
 
 Then `mix deps.get`. The module appears in the admin Modules page and sidebar automatically via `PhoenixKit.Module` auto-discovery.
 
-Requires PhoenixKit core `>= 1.7.189 and < 3.0.0` — 1.7.189 is the floor for the `Tab` gettext backend API, and the range spans core 2.x deliberately (see the pin comment in `mix.exs`).
+Requires PhoenixKit core `~> 2.0`. Core 2.0.0 squashed the migration chain to a `V135` floor and refuses to migrate a database below it — check `mix phoenix_kit.status` before upgrading, and see core’s 2.0.0 CHANGELOG.
 
 ## Module integration
 

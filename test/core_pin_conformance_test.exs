@@ -3,24 +3,27 @@ defmodule PhoenixKitCustomerSupport.CorePinConformanceTest do
 
   @moduledoc """
   Guards the `:phoenix_kit` requirement against being re-narrowed to a
-  single core major.
+  single core MINOR.
 
-  A three-segment `~> 1.7.x` pin expands to `>= 1.7.x and < 1.8.0`, which
-  no 1.8 or 2.x core can satisfy. The breakage lands on consumers, not
-  here: a host that depends on both this module and a newer core gets an
-  unsolvable dependency set and `mix deps.get` fails outright — there is
-  no degraded mode, and nothing in this repo's own test run would notice.
+  This module requires core 2.x (`~> 2.0`). The trap the pin must avoid is
+  the three-segment form: `~> 2.0.x` expands to `>= 2.0.x and < 2.1.0`, so
+  no 2.1 or later core satisfies it. The breakage lands on consumers, not
+  here — a host depending on both this module and a newer core minor gets
+  an unsolvable dependency set and `mix deps.get` fails outright, with no
+  degraded mode, and nothing in this repo's own test run would notice.
 
-  Nothing in this module touches core migration internals, so spanning
-  majors is safe; the requirement is the whole compatibility contract.
+  Core 1.7 is deliberately excluded: core 2.0.0 squashed the migration
+  chain to a V135 floor, and this module is only verified against that
+  baseline. Nothing here touches core migration internals, so the
+  requirement is the whole compatibility contract.
   """
 
-  # Floor: PhoenixKit.Dashboard.Tab's gettext_backend API (BeamLabEU/phoenix_kit#522).
-  @floor "1.7.189"
-  @must_admit ["1.7.189", "1.7.236", "1.8.0", "1.9.4", "2.0.0", "2.3.1"]
-  @must_reject ["1.7.188", "3.0.0"]
+  # Floor: core 2.0.0, the squashed-migration baseline.
+  @floor "2.0.0"
+  @must_admit ["2.0.0", "2.0.7", "2.1.0", "2.9.4"]
+  @must_reject ["1.7.189", "1.7.236", "1.9.4", "3.0.0"]
 
-  test "the phoenix_kit requirement spans core majors" do
+  test "the phoenix_kit requirement admits every core 2.x" do
     requirement = core_requirement()
 
     assert match?({:ok, _parsed}, Version.parse_requirement(requirement)),
@@ -29,8 +32,8 @@ defmodule PhoenixKitCustomerSupport.CorePinConformanceTest do
     for version <- @must_admit do
       assert Version.match?(version, requirement),
              "`:phoenix_kit` requirement #{inspect(requirement)} rejects core #{version}. " <>
-               "A pin that excludes a core major breaks `mix deps.get` for every host " <>
-               "running this module alongside that core."
+               "A pin that excludes a core minor breaks `mix deps.get` for every host " <>
+               "running this module alongside that core. Keep it a two-segment `~> 2.0`."
     end
 
     for version <- @must_reject do

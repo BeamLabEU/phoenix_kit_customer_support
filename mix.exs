@@ -50,7 +50,15 @@ defmodule PhoenixKitCustomerSupport.MixProject do
 
   defp deps do
     [
-      {:phoenix_kit, "~> 1.7.189"},
+      # Core pin spans majors on purpose. `~> 1.7.189` means `>= 1.7.189 and
+      # < 1.8.0`, which core 2.0.0 cannot satisfy — a host on `{:phoenix_kit,
+      # "~> 2.0"}` plus this module is an unsolvable dependency set and
+      # `mix deps.get` fails outright, with no degraded mode. 1.7.189 stays the
+      # floor (Tab gettext_backend API); the ceiling moves to the next major.
+      # Nothing here touches migration internals, so the widening is the whole
+      # change — see the "Feature modules need a widened pin" note in core's
+      # 2.0.0 CHANGELOG.
+      {:phoenix_kit, ">= 1.7.189 and < 3.0.0"},
       {:gettext, "~> 1.0"},
       {:phoenix_live_view, "~> 1.1"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

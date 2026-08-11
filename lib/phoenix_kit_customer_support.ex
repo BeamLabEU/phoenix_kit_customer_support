@@ -185,7 +185,7 @@ defmodule PhoenixKitCustomerSupport do
   def module_name, do: "Customer Support"
 
   @impl PhoenixKit.Module
-  def version, do: "0.2.0"
+  def version, do: "0.2.1"
 
   @impl PhoenixKit.Module
   def route_module, do: PhoenixKitCustomerSupport.Routes

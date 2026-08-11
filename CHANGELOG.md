@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.2.1 - 2026-08-11
+
+### Changed
+
+- Dependency updates: `phoenix_kit` 2.2.0 and the transitive set it pulls
+  (`phoenix` 1.8.10, `hackney` 4.7.3). No source changes in this package.
+
 ## 0.2.0 - 2026-08-10
 
 ### Changed

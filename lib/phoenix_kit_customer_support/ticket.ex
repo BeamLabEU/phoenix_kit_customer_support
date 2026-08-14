@@ -151,7 +151,7 @@ defmodule PhoenixKitCustomerSupport.Ticket do
 
   - Title max 255 characters
   - Status must be valid
-  - Slug auto-generated from title if not provided
+  - Slug auto-generated from title if not provided; an existing slug is kept
   """
   def changeset(ticket, attrs) do
     ticket
@@ -169,19 +169,13 @@ defmodule PhoenixKitCustomerSupport.Ticket do
     |> validate_required([:user_uuid, :title, :description, :status])
     |> validate_inclusion(:status, @statuses)
     |> validate_length(:title, max: 255)
-    # Core's changeset glue, replacing two local functions with three defects
-    # between them. The generator keyed on `get_change(:slug)`, which is nil on
-    # any save that carries no slug — so EVERY status transition regenerated
-    # the slug. The slugify appended the last six digits of the millisecond
-    # clock, so each regeneration produced a NEW value and the ticket's URL
-    # moved on every touch (and the suffix cycles every ~16.7 minutes, so it
-    # was never a uniqueness mechanism either). And it stripped non-ASCII
-    # (`[^\w\s-]` — \w is ASCII-only here), so a Cyrillic title slugged to a
-    # bare timestamp. `put_slug/3` keeps an existing slug, romanizes, and
-    # suffixes -2, -3 … until free — real uniqueness, backed by the index
-    # V168 made unique. Existing tickets keep their timestamped slugs: their
-    # URLs stop moving, which is the point.
+    # Keep an existing slug (status/title edits must not move the URL);
+    # romanize a new one; suffix -2, -3 … against the unique index V168 added.
+    # Must run before validate_required(:slug) so a create without an explicit
+    # slug is not rejected before generation can supply one.
     |> Slug.put_slug(:title, max_length: 255)
+    |> validate_required([:slug])
+    |> validate_length(:slug, max: 255)
     |> foreign_key_constraint(:user_uuid)
     |> foreign_key_constraint(:assigned_to_uuid)
     |> unique_constraint(:slug)
@@ -243,6 +237,4 @@ defmodule PhoenixKitCustomerSupport.Ticket do
   def valid_transition?(current_status, new_status) do
     new_status in valid_transitions(current_status)
   end
-
-  # Private Functions
 end

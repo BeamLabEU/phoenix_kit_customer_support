@@ -15,7 +15,7 @@ defmodule PhoenixKitCustomerSupport.TicketSlugTest do
   """
   use PhoenixKitCustomerSupport.DataCase, async: true
 
-  alias Ecto.Changeset
+  alias PhoenixKitCustomerSupport
   alias PhoenixKitCustomerSupport.Ticket
 
   defp user! do
@@ -81,6 +81,16 @@ defmodule PhoenixKitCustomerSupport.TicketSlugTest do
 
       assert updated.slug == "old-ticket-483920"
     end
+
+    test "a title change keeps the slug" do
+      ticket = ticket!(user!())
+
+      {:ok, updated} =
+        ticket |> Ticket.changeset(%{title: "Printer is now merely warm"}) |> Repo.update()
+
+      assert updated.slug == ticket.slug
+      assert updated.slug == "printer-on-fire"
+    end
   end
 
   describe "generation" do
@@ -105,6 +115,15 @@ defmodule PhoenixKitCustomerSupport.TicketSlugTest do
 
       assert first.slug == "printer-on-fire"
       assert second.slug == "printer-on-fire-2"
+    end
+
+    test "get_ticket_by_slug/2 finds each collision separately" do
+      user = user!()
+      first = ticket!(user)
+      second = ticket!(user)
+
+      assert PhoenixKitCustomerSupport.get_ticket_by_slug(first.slug).uuid == first.uuid
+      assert PhoenixKitCustomerSupport.get_ticket_by_slug(second.slug).uuid == second.uuid
     end
   end
 end

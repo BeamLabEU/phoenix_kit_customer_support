@@ -23,12 +23,12 @@ Provides a full ticketing system: create tickets, track status, add comments and
 Add to the host app's `mix.exs`:
 
 ```elixir
-{:phoenix_kit_customer_support, "~> 0.2"}
+{:phoenix_kit_customer_support, "~> 0.3"}
 ```
 
 Then `mix deps.get`. The module appears in the admin Modules page and sidebar automatically via `PhoenixKit.Module` auto-discovery.
 
-Requires PhoenixKit core `~> 2.0`. Core 2.0.0 squashed the migration chain to a `V135` floor and refuses to migrate a database below it — check `mix phoenix_kit.status` before upgrading, and see core’s 2.0.0 CHANGELOG.
+Requires PhoenixKit core `~> 2.4`. `Ticket.changeset/2` calls `PhoenixKit.Utils.Slug.put_slug/3`, which core added in 2.4.0 (along with V168, which makes ticket slugs unique). Core 2.0.0 squashed the migration chain to a `V135` floor and refuses to migrate a database below it — check `mix phoenix_kit.status` before upgrading, and see core’s 2.0.0 / 2.4.0 CHANGELOGs.
 
 ## Module integration
 

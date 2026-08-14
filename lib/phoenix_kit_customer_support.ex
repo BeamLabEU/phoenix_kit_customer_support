@@ -185,7 +185,7 @@ defmodule PhoenixKitCustomerSupport do
   def module_name, do: "Customer Support"
 
   @impl PhoenixKit.Module
-  def version, do: "0.2.1"
+  def version, do: "0.3.0"
 
   @impl PhoenixKit.Module
   def route_module, do: PhoenixKitCustomerSupport.Routes
@@ -406,7 +406,7 @@ defmodule PhoenixKitCustomerSupport do
 
   ## Examples
 
-      iex> get_ticket_by_slug("cannot-login-123456")
+      iex> get_ticket_by_slug("cannot-login-to-my-account")
       %Ticket{}
   """
   def get_ticket_by_slug(slug, opts \\ []) when is_binary(slug) do

@@ -4,6 +4,45 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 - 2026-08-14
+
+### Changed
+
+- **⚠️ Requires `phoenix_kit ~> 2.4`.** `Ticket.changeset/2` calls
+  `PhoenixKit.Utils.Slug.put_slug/3`, which core added in 2.4.0. The previous
+  `~> 2.0` let a host resolve a core without that function: the build succeeded
+  and then raised `UndefinedFunctionError` on every ticket create and update, in
+  the host's application. Nothing else about the requirement changed — it stays
+  two-segment, so every later 2.x core still resolves.
+
+### Fixed
+
+- **Ticket slugs no longer change on every save (#7).** The local generator
+  keyed on `get_change(:slug)`, which is nil on any save that does not carry a
+  slug — so every status transition regenerated. The slugify then appended the
+  last six digits of the millisecond clock, which produced a *new* value each
+  time and cycled every ~16.7 minutes, so it never guaranteed uniqueness
+  either. Cyrillic titles slugged to a bare timestamp. Existing tickets keep
+  their timestamped slugs (their identifiers simply stop moving); new tickets
+  get a clean romanized title slug, and collisions suffix `-2`, `-3` … against
+  the unique index core V168 added.
+
+- A title that slugifies to empty (punctuation-only, unromanizable script)
+  now fails `validate_required(:slug)` on the changeset instead of inserting
+  with a nil slug and raising `not_null_violation` at the database.
+
+### Added
+
+- `test/phoenix_kit_customer_support/ticket_slug_test.exs` — integration
+  coverage for stable slugs, romanization, and `-2` collisions.
+- `test/phoenix_kit_customer_support/ticket_slug_changeset_test.exs` —
+  changeset-only coverage that does not need Postgres (existing slug survives
+  status/title edits; a punctuation-only title is rejected).
+- `pk_dep/3` in `mix.exs` — local `PHOENIX_KIT_PATH` override for running the
+  suite against uncommitted core; the published pin is unchanged when unset.
+- `PhoenixKit.Migration.ensure_current/2` in the test helper so a fresh
+  `createdb` actually builds the tickets tables (they live in core's chain).
+
 ## 0.2.1 - 2026-08-11
 
 ### Changed

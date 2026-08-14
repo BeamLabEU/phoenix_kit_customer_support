@@ -1,7 +1,7 @@
 defmodule PhoenixKitCustomerSupport.MixProject do
   use Mix.Project
 
-  @version "0.2.1"
+  @version "0.3.0"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_customer_support"
 
   def project do
@@ -65,13 +65,15 @@ defmodule PhoenixKitCustomerSupport.MixProject do
 
   defp deps do
     [
-      # Core 2.x only. Keep this a TWO-segment `~> 2.0`: a three-segment
-      # `~> 2.0.x` would expand to `< 2.1.0` and exclude every later core
-      # minor, which is the failure mode `test/core_pin_conformance_test.exs`
-      # guards. Nothing here touches core migration internals — this module
-      # declares no `migration_module/0` and its tables come from core's own
-      # chain — so the requirement is the whole compatibility contract.
-      pk_dep(:phoenix_kit, "~> 2.0"),
+      # 2.4 is a hard floor: Ticket.changeset/2 calls
+      # PhoenixKit.Utils.Slug.put_slug/3, which core added in 2.4.0 (and V168
+      # made phoenix_kit_tickets.slug unique). Under the previous `~> 2.0` a
+      # host resolving 2.0–2.3 compiled fine and then raised
+      # UndefinedFunctionError on every ticket create or update — in the
+      # host's app, not ours. Keep this TWO-segment: `~> 2.4.x` expands to
+      # `< 2.5.0` and excludes every later core minor, which is the failure
+      # mode `test/core_pin_conformance_test.exs` guards.
+      pk_dep(:phoenix_kit, "~> 2.4"),
       {:gettext, "~> 1.0"},
       {:phoenix_live_view, "~> 1.1"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

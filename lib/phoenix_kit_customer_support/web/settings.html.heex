@@ -42,9 +42,9 @@
         </h2>
 
         <%!-- Per Page --%>
-        <div class="form-control">
+        <div class="fieldset">
           <label class="label">
-            <span class="label-text font-medium">{gettext("Tickets Per Page")}</span>
+            <span class="fieldset-legend font-medium">{gettext("Tickets Per Page")}</span>
           </label>
           <label class="select w-full max-w-xs">
             <select
@@ -69,7 +69,7 @@
         </h2>
 
         <%!-- Internal Notes --%>
-        <div class="form-control">
+        <div class="fieldset">
           <label class="label cursor-pointer justify-start gap-4">
             <input
               type="checkbox"
@@ -78,7 +78,7 @@
               phx-click="toggle_internal_notes"
             />
             <div>
-              <span class="label-text font-medium">{gettext("Internal Notes")}</span>
+              <span class="fieldset-legend font-medium">{gettext("Internal Notes")}</span>
               <p class="text-sm text-base-content/50">
                 {gettext("Allow staff-only notes that are hidden from customers")}
               </p>
@@ -89,7 +89,7 @@
         <div class="divider my-2"></div>
 
         <%!-- Attachments --%>
-        <div class="form-control">
+        <div class="fieldset">
           <label class="label cursor-pointer justify-start gap-4">
             <input
               type="checkbox"
@@ -98,7 +98,7 @@
               phx-click="toggle_attachments"
             />
             <div>
-              <span class="label-text font-medium">{gettext("Attachments")}</span>
+              <span class="fieldset-legend font-medium">{gettext("Attachments")}</span>
               <p class="text-sm text-base-content/50">
                 {gettext("Allow uploading files to tickets and comments")}
               </p>
@@ -116,7 +116,7 @@
         </h2>
 
         <%!-- Allow Reopen --%>
-        <div class="form-control">
+        <div class="fieldset">
           <label class="label cursor-pointer justify-start gap-4">
             <input
               type="checkbox"
@@ -125,7 +125,7 @@
               phx-click="toggle_allow_reopen"
             />
             <div>
-              <span class="label-text font-medium">{gettext("Allow Reopening Tickets")}</span>
+              <span class="fieldset-legend font-medium">{gettext("Allow Reopening Tickets")}</span>
               <p class="text-sm text-base-content/50">
                 {gettext("Allow resolved or closed tickets to be reopened")}
               </p>

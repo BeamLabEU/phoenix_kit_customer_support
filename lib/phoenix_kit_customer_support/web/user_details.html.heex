@@ -145,13 +145,13 @@
 
           <%!-- Add Comment Form --%>
           <form phx-submit="add_comment" phx-change="validate" class="space-y-4">
-            <div class="form-control">
+            <div class="fieldset">
               <label class="label">
-                <span class="label-text font-medium">{gettext("Add a comment")}</span>
+                <span class="fieldset-legend font-medium">{gettext("Add a comment")}</span>
               </label>
               <textarea
                 name="comment[content]"
-                class="textarea textarea-bordered w-full"
+                class="textarea w-full"
                 rows="3"
                 placeholder={gettext("Write your comment here...")}
                 required

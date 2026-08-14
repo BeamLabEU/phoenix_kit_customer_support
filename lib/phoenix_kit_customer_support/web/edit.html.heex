@@ -10,9 +10,9 @@
       <.form for={@form} phx-change="validate" phx-submit="save" class="space-y-6">
         <%!-- Customer (for new tickets) --%>
         <%= if @action == :new do %>
-          <div class="form-control">
+          <div class="fieldset">
             <label class="label">
-              <span class="label-text font-medium">Customer</span>
+              <span class="fieldset-legend font-medium">Customer</span>
             </label>
             <label class="select w-full">
               <select name="ticket[user_uuid]">
@@ -23,7 +23,7 @@
               </select>
             </label>
             <label class="label">
-              <span class="label-text-alt text-base-content/50">
+              <span class="fieldset-label text-base-content/50">
                 Select the customer this ticket is for
               </span>
             </label>
@@ -31,22 +31,22 @@
         <% end %>
 
         <%!-- Title --%>
-        <div class="form-control">
+        <div class="fieldset">
           <label class="label">
-            <span class="label-text font-medium">Title</span>
-            <span class="label-text-alt text-error">Required</span>
+            <span class="fieldset-legend font-medium">Title</span>
+            <span class="fieldset-label text-error">Required</span>
           </label>
           <input
             type="text"
             name="ticket[title]"
             value={@form[:title].value}
-            class={"input input-bordered w-full #{if @form[:title].errors != [], do: "input-error"}"}
+            class={"input w-full #{if @form[:title].errors != [], do: "input-error"}"}
             placeholder="Brief description of the issue"
             required
           />
           <%= if @form[:title].errors != [] do %>
             <label class="label">
-              <span class="label-text-alt text-error">
+              <span class="fieldset-label text-error">
                 {Enum.map(@form[:title].errors, fn {msg, _} -> msg end) |> Enum.join(", ")}
               </span>
             </label>
@@ -54,20 +54,20 @@
         </div>
 
         <%!-- Description --%>
-        <div class="form-control">
+        <div class="fieldset">
           <label class="label">
-            <span class="label-text font-medium">Description</span>
-            <span class="label-text-alt text-error">Required</span>
+            <span class="fieldset-legend font-medium">Description</span>
+            <span class="fieldset-label text-error">Required</span>
           </label>
           <textarea
             name="ticket[description]"
-            class={"textarea textarea-bordered w-full h-40 #{if @form[:description].errors != [], do: "textarea-error"}"}
+            class={"textarea w-full h-40 #{if @form[:description].errors != [], do: "textarea-error"}"}
             placeholder="Describe the issue in detail..."
             required
           >{@form[:description].value}</textarea>
           <%= if @form[:description].errors != [] do %>
             <label class="label">
-              <span class="label-text-alt text-error">
+              <span class="fieldset-label text-error">
                 {Enum.map(@form[:description].errors, fn {msg, _} -> msg end) |> Enum.join(", ")}
               </span>
             </label>
@@ -76,9 +76,9 @@
 
         <%!-- Assignment (for edit) --%>
         <%= if @action == :edit do %>
-          <div class="form-control">
+          <div class="fieldset">
             <label class="label">
-              <span class="label-text font-medium">Assigned To</span>
+              <span class="fieldset-legend font-medium">Assigned To</span>
             </label>
             <label class="select w-full">
               <select name="ticket[assigned_to_uuid]">
@@ -96,9 +96,9 @@
           </div>
 
           <%!-- Status (for edit) --%>
-          <div class="form-control">
+          <div class="fieldset">
             <label class="label">
-              <span class="label-text font-medium">Status</span>
+              <span class="fieldset-legend font-medium">Status</span>
             </label>
             <label class="select w-full">
               <select name="ticket[status]">
@@ -119,10 +119,10 @@
 
         <%!-- Attachments (for new tickets) --%>
         <%= if @action == :new and @attachments_enabled do %>
-          <div class="form-control">
+          <div class="fieldset">
             <label class="label">
-              <span class="label-text font-medium">Attachments</span>
-              <span class="label-text-alt text-base-content/50">Optional</span>
+              <span class="fieldset-legend font-medium">Attachments</span>
+              <span class="fieldset-label text-base-content/50">Optional</span>
             </label>
 
             <%= if Enum.any?(@pending_files) do %>

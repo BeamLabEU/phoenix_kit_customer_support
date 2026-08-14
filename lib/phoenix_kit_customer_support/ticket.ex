@@ -73,6 +73,8 @@ defmodule PhoenixKitCustomerSupport.Ticket do
   use PhoenixKit.SchemaPrefix
   import Ecto.Changeset
 
+  alias PhoenixKit.Utils.Slug
+
   @primary_key {:uuid, UUIDv7, autogenerate: true}
   @foreign_key_type UUIDv7
 
@@ -167,7 +169,19 @@ defmodule PhoenixKitCustomerSupport.Ticket do
     |> validate_required([:user_uuid, :title, :description, :status])
     |> validate_inclusion(:status, @statuses)
     |> validate_length(:title, max: 255)
-    |> maybe_generate_slug()
+    # Core's changeset glue, replacing two local functions with three defects
+    # between them. The generator keyed on `get_change(:slug)`, which is nil on
+    # any save that carries no slug — so EVERY status transition regenerated
+    # the slug. The slugify appended the last six digits of the millisecond
+    # clock, so each regeneration produced a NEW value and the ticket's URL
+    # moved on every touch (and the suffix cycles every ~16.7 minutes, so it
+    # was never a uniqueness mechanism either). And it stripped non-ASCII
+    # (`[^\w\s-]` — \w is ASCII-only here), so a Cyrillic title slugged to a
+    # bare timestamp. `put_slug/3` keeps an existing slug, romanizes, and
+    # suffixes -2, -3 … until free — real uniqueness, backed by the index
+    # V168 made unique. Existing tickets keep their timestamped slugs: their
+    # URLs stop moving, which is the point.
+    |> Slug.put_slug(:title, max_length: 255)
     |> foreign_key_constraint(:user_uuid)
     |> foreign_key_constraint(:assigned_to_uuid)
     |> unique_constraint(:slug)
@@ -231,35 +245,4 @@ defmodule PhoenixKitCustomerSupport.Ticket do
   end
 
   # Private Functions
-
-  defp maybe_generate_slug(changeset) do
-    case get_change(changeset, :slug) do
-      nil ->
-        title = get_field(changeset, :title)
-
-        if title do
-          slug = slugify(title)
-          put_change(changeset, :slug, slug)
-        else
-          changeset
-        end
-
-      _slug ->
-        changeset
-    end
-  end
-
-  defp slugify(title) do
-    timestamp = System.system_time(:millisecond) |> Integer.to_string() |> String.slice(-6, 6)
-
-    base_slug =
-      title
-      |> String.downcase()
-      |> String.replace(~r/[^\w\s-]/, "")
-      |> String.replace(~r/\s+/, "-")
-      |> String.trim("-")
-      |> String.slice(0, 50)
-
-    "#{base_slug}-#{timestamp}"
-  end
 end

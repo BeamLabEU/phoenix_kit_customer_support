@@ -48,6 +48,21 @@ defmodule PhoenixKitCustomerSupport.MixProject do
     ]
   end
 
+  # Swaps a Hex pin for a local checkout when PHOENIX_KIT_PATH is set, so this
+  # module's suite can run against uncommitted core without publishing it.
+  # Unset means the published pin, so `mix hex.publish` and CI are unaffected.
+  defp pk_dep(app, requirement, opts \\ []) do
+    env_var = String.upcase(Atom.to_string(app)) <> "_PATH"
+
+    case System.get_env(env_var) do
+      nil when opts == [] -> {app, requirement}
+      nil -> {app, requirement, opts}
+      # The requirement is kept alongside the path so the pin conformance
+      # test can still see it (Mix checks it against the local checkout).
+      path -> {app, requirement, [path: path, override: true] ++ opts}
+    end
+  end
+
   defp deps do
     [
       # Core 2.x only. Keep this a TWO-segment `~> 2.0`: a three-segment
@@ -56,7 +71,7 @@ defmodule PhoenixKitCustomerSupport.MixProject do
       # guards. Nothing here touches core migration internals — this module
       # declares no `migration_module/0` and its tables come from core's own
       # chain — so the requirement is the whole compatibility contract.
-      {:phoenix_kit, "~> 2.0"},
+      pk_dep(:phoenix_kit, "~> 2.0"),
       {:gettext, "~> 1.0"},
       {:phoenix_live_view, "~> 1.1"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

@@ -52,6 +52,12 @@ repo_available =
       $$ LANGUAGE plpgsql VOLATILE;
       """)
 
+      # The tickets tables live in CORE's versioned chain, not this module —
+      # so the schema is built the same way a host app builds it. Without this
+      # a fresh createdb passed the connectivity probe and every integration
+      # test then failed on "relation does not exist".
+      PhoenixKit.Migration.ensure_current(TestRepo, log: false)
+
       Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
       true
     rescue

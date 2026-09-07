@@ -51,6 +51,7 @@ defmodule PhoenixKitCustomerSupport do
   """
 
   use PhoenixKit.Module
+  use Gettext, backend: PhoenixKitCustomerSupport.Gettext
 
   import Ecto.Query, warn: false
 
@@ -159,6 +160,17 @@ defmodule PhoenixKitCustomerSupport do
         Settings.get_boolean_setting("customer_support_attachments_enabled", true),
       allow_reopen: Settings.get_boolean_setting("customer_support_allow_reopen", true)
     }
+  end
+
+  @doc "Returns stats for the module card on the admin Modules page."
+  def module_stats do
+    config = get_config()
+
+    [
+      %{label: gettext("Total"), value: config[:total_tickets] || 0},
+      %{label: gettext("Open"), value: config[:open_tickets] || 0},
+      %{label: gettext("In Progress"), value: config[:in_progress_tickets] || 0}
+    ]
   end
 
   defp count_tickets do

@@ -30,6 +30,8 @@ Then `mix deps.get`. The module appears in the admin Modules page and sidebar au
 
 Requires PhoenixKit core `~> 2.4`. `Ticket.changeset/2` calls `PhoenixKit.Utils.Slug.put_slug/3`, which core added in 2.4.0 (along with V168, which makes ticket slugs unique). Core 2.0.0 squashed the migration chain to a `V135` floor and refuses to migrate a database below it — check `mix phoenix_kit.status` before upgrading, and see core’s 2.0.0 / 2.4.0 CHANGELOGs.
 
+This module owns and versions the future shape of its 4 tables (`phoenix_kit_tickets`, `phoenix_kit_ticket_comments`, `phoenix_kit_ticket_attachments`, `phoenix_kit_ticket_status_history`) through its own migration chain, `PhoenixKitCustomerSupport.Migrations`. Core's `V135`/`V168` still CREATE these 4 tables on every install — this chain's `V1` adopts that shape and stamps a version marker. It makes exactly one real change: `phoenix_kit_ticket_status_history.changed_by_uuid` is made NULLABLE (`ALTER COLUMN … DROP NOT NULL`), because core's baseline declares it `NOT NULL` while its own FK is `ON DELETE SET NULL` — a contradiction core's V164 documents but never resolves. Hosts installed from the squashed `V135` baseline (core ≥ 2.0.0) carry the `NOT NULL` and are relaxed by `V1`; older hosts that reached the current chain historically already have it nullable, so `V1` is a no-op there. `V1` also replaces any legacy descriptive `COMMENT` on `phoenix_kit_tickets` with the version marker. The `~> 2.4` floor above exists because `V1` must already include V168 (the unique slug index) for the adopted shape to match.
+
 ## Module integration
 
 The package registers itself with PhoenixKit's module system. No manual router wiring needed — admin routes are auto-discovered at compile time via `route_module/0`.
@@ -69,6 +71,37 @@ The following settings keys control this module's behaviour. They are managed vi
 | `customer_support_internal_notes_enabled` | `true` | Enables internal (agent-only) notes on tickets. |
 | `customer_support_attachments_enabled` | `true` | Allows file attachments to be added to tickets and comments. |
 | `customer_support_allow_reopen` | `true` | Permits closed tickets to be reopened by users or agents. |
+
+## Removing this module
+
+There is deliberately **no automated uninstall**. `PhoenixKitCustomerSupport.Migrations.down/1`
+never drops any of the 4 `phoenix_kit_ticket*` tables or a row in them, for
+any target version — a host that merely removes this dependency from
+`mix.exs` has not consented to deleting every customer's tickets, comments
+(public and internal notes), attachments and status-change audit trail, and
+a migration whose result depended on which packages happen to be compiled
+in would be nondeterministic. Removing the data is therefore a deliberate,
+manual operator step, in FK-safe order (children before parents):
+
+```sql
+-- Only after removing :phoenix_kit_customer_support from mix.exs, and only
+-- if you actually want every ticket and everything attached to it gone for
+-- good.
+DROP TABLE phoenix_kit_ticket_attachments;
+DROP TABLE phoenix_kit_ticket_comments;
+DROP TABLE phoenix_kit_ticket_status_history;
+DROP TABLE phoenix_kit_tickets;
+```
+
+Dropping `phoenix_kit_tickets` last also removes the `pkcs_schema:<N>` version
+marker, which is a `COMMENT` on that table — no separate step is needed.
+
+If you want to keep the tables (e.g. you plan to reinstall the module later)
+but stop this chain from tracking them, clear the version marker instead:
+
+```sql
+COMMENT ON TABLE phoenix_kit_tickets IS NULL;
+```
 
 ## Development
 

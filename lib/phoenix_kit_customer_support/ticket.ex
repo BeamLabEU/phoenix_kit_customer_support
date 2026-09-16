@@ -80,6 +80,15 @@ defmodule PhoenixKitCustomerSupport.Ticket do
 
   @statuses ["open", "in_progress", "resolved", "closed"]
 
+  # The single source for every varchar width this schema's changeset
+  # validates and `PhoenixKitCustomerSupport.Migrations`' V1 DDL interpolates
+  # — never a second hard-coded number in the migration.
+  @column_widths %{
+    title: 255,
+    status: 255,
+    slug: 255
+  }
+
   @type t :: %__MODULE__{
           uuid: UUIDv7.t() | nil,
           user_uuid: UUIDv7.t(),
@@ -136,6 +145,15 @@ defmodule PhoenixKitCustomerSupport.Ticket do
 
     timestamps(type: :utc_datetime)
   end
+
+  @doc """
+  The varchar widths for this schema's columns — the single shape authority
+  `PhoenixKitCustomerSupport.Migrations`' V1 DDL interpolates, so the
+  changeset validation and the migration can never independently disagree on
+  a number.
+  """
+  @spec column_widths() :: %{atom() => pos_integer()}
+  def column_widths, do: @column_widths
 
   @doc """
   Changeset for creating or updating a ticket.

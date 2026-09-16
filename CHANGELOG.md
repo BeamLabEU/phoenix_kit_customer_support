@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- `PhoenixKitCustomerSupport.Migrations` — this module now owns and
+  versions the future shape of its 4 tables (`phoenix_kit_tickets`,
+  `phoenix_kit_ticket_comments`, `phoenix_kit_ticket_attachments`,
+  `phoenix_kit_ticket_status_history`) via its own migration chain, the
+  same pattern already shipped for `phoenix_kit_posts`,
+  `phoenix_kit_dashboards` and `phoenix_kit_warehouse`. `V1` adopts core's
+  current `V135`/`V168` shape and stamps a `pkcs_schema:1` marker on
+  `phoenix_kit_tickets`. One real change: `changed_by_uuid` on
+  `phoenix_kit_ticket_status_history` is made nullable (its FK is
+  `ON DELETE SET NULL`, which core's `NOT NULL` baseline contradicts and
+  V164 documents without fixing) — a no-op on hosts that already carry it
+  nullable, an `ALTER COLUMN … DROP NOT NULL` on hosts installed from the
+  squashed baseline. Any legacy descriptive `COMMENT` on
+  `phoenix_kit_tickets` is replaced by the marker.
+
 ## 0.3.0 - 2026-08-14
 
 ### Changed

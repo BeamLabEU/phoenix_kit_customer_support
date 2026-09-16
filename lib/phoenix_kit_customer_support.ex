@@ -202,6 +202,11 @@ defmodule PhoenixKitCustomerSupport do
   @impl PhoenixKit.Module
   def route_module, do: PhoenixKitCustomerSupport.Routes
 
+  # Declares this module's own migration chain — V1 adopts the 4 ticket
+  # tables' current core-created shape; nothing else changes on any install.
+  @impl PhoenixKit.Module
+  def migration_module, do: PhoenixKitCustomerSupport.Migrations
+
   @impl PhoenixKit.Module
   def css_sources, do: [:phoenix_kit_customer_support]
 

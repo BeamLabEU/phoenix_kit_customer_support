@@ -59,6 +59,14 @@ defmodule PhoenixKitCustomerSupport.MigrationsDataSafetyTest do
     def down, do: :ok
   end
 
+  defmodule RunUpToOne do
+    @moduledoc false
+    use Ecto.Migration
+
+    def up, do: Migrations.up(prefix: "public", version: 1)
+    def down, do: :ok
+  end
+
   defp user! do
     n = System.unique_integer([:positive])
 
@@ -143,6 +151,49 @@ defmodule PhoenixKitCustomerSupport.MigrationsDataSafetyTest do
 
     assert Migrations.migrated_version_runtime(prefix: "public") == 1,
            "the map shape lost :version and rolled the chain further back than asked"
+  end
+
+  test "a real up(version: 1) run is idempotent and leaves seeded rows untouched",
+       %{ticket: ticket, comment: comment, status_history: status_history} do
+    # up/1 re-reads the installed version, calls ensure_extension!/1 and
+    # ensure_uuid_v7_function/1, then runs the same 42 guarded statements
+    # up_statements/2 emits — clearing the marker first simulates the
+    # "database behind the target" branch up/1 checks before doing anything,
+    # so this exercises that whole path for real rather than as SQL text
+    # applied directly (test_helper.exs does the latter, once, before any
+    # test runs — this is the only place up/1 itself, as a function, gets a
+    # real migration-context run).
+    ticket_count = count("phoenix_kit_tickets")
+    comment_count = count("phoenix_kit_ticket_comments")
+    status_history_count = count("phoenix_kit_ticket_status_history")
+
+    Repo.query!("COMMENT ON TABLE phoenix_kit_tickets IS NULL")
+
+    run_migration(RunUpToOne)
+
+    assert Migrations.migrated_version_runtime(prefix: "public") == 1
+
+    assert count("phoenix_kit_tickets") == ticket_count,
+           "a real up(version: 1) run changed the row count in phoenix_kit_tickets"
+
+    assert count("phoenix_kit_ticket_comments") == comment_count,
+           "a real up(version: 1) run changed the row count in phoenix_kit_ticket_comments"
+
+    assert count("phoenix_kit_ticket_status_history") == status_history_count,
+           "a real up(version: 1) run changed the row count in phoenix_kit_ticket_status_history"
+
+    assert Repo.get!(Ticket, ticket.uuid).title == ticket.title
+    assert Repo.get!(TicketComment, comment.uuid).content == comment.content
+
+    assert Repo.get!(TicketStatusHistory, status_history.uuid).to_status ==
+             status_history.to_status
+
+    # Idempotence: every table/pkey/check/index/fk statement is
+    # CREATE-IF-NOT-EXISTS/DO-guarded against objects that already exist
+    # (core's baseline created them), so running up/1 again must be a no-op,
+    # not an error.
+    run_migration(RunUpToOne)
+    assert Migrations.migrated_version_runtime(prefix: "public") == 1
   end
 
   test "the survival check has teeth: a destructive rollback fails it", %{ticket: ticket} do

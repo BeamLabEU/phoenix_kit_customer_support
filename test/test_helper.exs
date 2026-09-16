@@ -58,6 +58,9 @@ repo_available =
       # test then failed on "relation does not exist".
       PhoenixKit.Migration.ensure_current(TestRepo, log: false)
 
+      PhoenixKitCustomerSupport.Migrations.up_statements()
+      |> Enum.each(&Ecto.Adapters.SQL.query!(TestRepo, &1, []))
+
       Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
       true
     rescue

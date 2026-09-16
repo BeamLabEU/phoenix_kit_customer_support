@@ -58,6 +58,14 @@ defmodule PhoenixKitCustomerSupport.TicketStatusHistory do
 
   @primary_key {:uuid, UUIDv7, autogenerate: true}
 
+  # The single source for every varchar width this schema's changeset
+  # validates and `PhoenixKitCustomerSupport.Migrations`' V1 DDL interpolates
+  # — never a second hard-coded number in the migration.
+  @column_widths %{
+    from_status: 255,
+    to_status: 255
+  }
+
   @type t :: %__MODULE__{
           uuid: UUIDv7.t() | nil,
           ticket_uuid: UUIDv7.t(),
@@ -87,6 +95,15 @@ defmodule PhoenixKitCustomerSupport.TicketStatusHistory do
 
     timestamps(type: :utc_datetime, updated_at: false)
   end
+
+  @doc """
+  The varchar widths for this schema's columns — the single shape authority
+  `PhoenixKitCustomerSupport.Migrations`' V1 DDL interpolates, so the
+  changeset validation and the migration can never independently disagree on
+  a number.
+  """
+  @spec column_widths() :: %{atom() => pos_integer()}
+  def column_widths, do: @column_widths
 
   @doc """
   Changeset for creating a status history entry.

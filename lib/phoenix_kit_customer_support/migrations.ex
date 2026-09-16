@@ -80,10 +80,12 @@ defmodule PhoenixKitCustomerSupport.Migrations do
   the FK's `ON DELETE SET NULL` semantics, and matching every real install
   that reached today's chain HEAD through the actual historical migration
   path rather than a fresh V135 squash. It does NOT match core's literal
-  (self-contradictory, buggy) `v135.ex`/manifest text. Because a FRESH
-  install could still hit core's literal V135 NOT NULL (if core ever creates
-  the table fresh without going through the historical relaxation), a
-  safety-net statement runs immediately after the `CREATE TABLE` block:
+  (self-contradictory, buggy) `v135.ex`/manifest text. Every install made
+  from the squashed baseline (core >= 2.0.0) DOES carry core's literal V135
+  NOT NULL — verified on a scratch database: after core's `ensure_current`
+  the column is `is_nullable = NO`, after this chain's V1 it is `YES`. So on
+  those hosts V1 is a real shape change, not a pure adoption, and the
+  statement that performs it runs immediately after the `CREATE TABLE` block:
   `ALTER TABLE ... ALTER COLUMN changed_by_uuid DROP NOT NULL` — idempotent,
   since Postgres no-ops `DROP NOT NULL` against an already-nullable column.
   Unlike an `ADD COLUMN IF NOT EXISTS` safety net, Postgres has no `IF NOT

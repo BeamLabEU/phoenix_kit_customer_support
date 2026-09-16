@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 0.4.0 - 2026-09-16
 
 ### Added
 
@@ -22,6 +22,20 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   nullable, an `ALTER COLUMN … DROP NOT NULL` on hosts installed from the
   squashed baseline. Any legacy descriptive `COMMENT` on
   `phoenix_kit_tickets` is replaced by the marker.
+
+### Fixed
+
+- `Ticket.changeset/2` and `TicketStatusHistory.changeset/2` now validate
+  against `column_widths/0`, the same widths V1's DDL uses, instead of a
+  hard-coded `255`. `from_status`/`to_status` were not length-checked at
+  all, so an over-long value raised at Postgres instead of returning a
+  changeset error.
+- README "Removing this module": `DROP TABLE` is not final while core's
+  manifest still requires these tables (`mix phoenix_kit.repair` recreates
+  them empty), and clearing the version marker does nothing because the next
+  `mix phoenix_kit.update` re-stamps it. SQL is now schema-qualified.
+- Typespecs: `Ticket.user_uuid` and `TicketStatusHistory.changed_by_uuid`
+  can be `nil` (both FKs are `ON DELETE SET NULL`).
 
 ## 0.3.0 - 2026-08-14
 

@@ -91,7 +91,7 @@ defmodule PhoenixKitCustomerSupport.Ticket do
 
   @type t :: %__MODULE__{
           uuid: UUIDv7.t() | nil,
-          user_uuid: UUIDv7.t(),
+          user_uuid: UUIDv7.t() | nil,
           assigned_to_uuid: UUIDv7.t() | nil,
           title: String.t(),
           description: String.t(),
@@ -186,14 +186,14 @@ defmodule PhoenixKitCustomerSupport.Ticket do
     ])
     |> validate_required([:user_uuid, :title, :description, :status])
     |> validate_inclusion(:status, @statuses)
-    |> validate_length(:title, max: 255)
+    |> validate_length(:title, max: @column_widths.title)
     # Keep an existing slug (status/title edits must not move the URL);
     # romanize a new one; suffix -2, -3 … against the unique index V168 added.
     # Must run before validate_required(:slug) so a create without an explicit
     # slug is not rejected before generation can supply one.
-    |> Slug.put_slug(:title, max_length: 255)
+    |> Slug.put_slug(:title, max_length: @column_widths.slug)
     |> validate_required([:slug])
-    |> validate_length(:slug, max: 255)
+    |> validate_length(:slug, max: @column_widths.slug)
     |> foreign_key_constraint(:user_uuid)
     |> foreign_key_constraint(:assigned_to_uuid)
     |> unique_constraint(:slug)

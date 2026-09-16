@@ -81,27 +81,32 @@ any target version — a host that merely removes this dependency from
 (public and internal notes), attachments and status-change audit trail, and
 a migration whose result depended on which packages happen to be compiled
 in would be nondeterministic. Removing the data is therefore a deliberate,
-manual operator step, in FK-safe order (children before parents):
+manual operator step — remove `:phoenix_kit_customer_support` from `mix.exs`
+first, then run, in FK-safe order (children before parents, substituting
+your PhoenixKit schema prefix for `public`):
 
 ```sql
--- Only after removing :phoenix_kit_customer_support from mix.exs, and only
--- if you actually want every ticket and everything attached to it gone for
--- good.
-DROP TABLE phoenix_kit_ticket_attachments;
-DROP TABLE phoenix_kit_ticket_comments;
-DROP TABLE phoenix_kit_ticket_status_history;
-DROP TABLE phoenix_kit_tickets;
+-- Only if you actually want every ticket and everything attached to it
+-- gone for good.
+DROP TABLE public.phoenix_kit_ticket_attachments;
+DROP TABLE public.phoenix_kit_ticket_comments;
+DROP TABLE public.phoenix_kit_ticket_status_history;
+DROP TABLE public.phoenix_kit_tickets;
 ```
 
 Dropping `phoenix_kit_tickets` last also removes the `pkcs_schema:<N>` version
 marker, which is a `COMMENT` on that table — no separate step is needed.
 
-If you want to keep the tables (e.g. you plan to reinstall the module later)
-but stop this chain from tracking them, clear the version marker instead:
+While core's baseline still creates these tables (it does today), core's
+`ExpectedSchema` manifest lists all 4 as required: `mix phoenix_kit.doctor`
+then reports them missing, and `mix phoenix_kit.repair` recreates them —
+**empty**. The rows are gone either way; only the empty tables come back.
 
-```sql
-COMMENT ON TABLE phoenix_kit_tickets IS NULL;
-```
+To keep the rows (e.g. you plan to reinstall the module later), simply leave
+the tables alone. The marker is inert once the module is gone, and on
+reinstall it correctly reads as already adopted. Clearing it achieves
+nothing: while the module is installed, the next `mix phoenix_kit.update`
+re-stamps it.
 
 ## Development
 

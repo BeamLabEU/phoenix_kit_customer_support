@@ -108,7 +108,7 @@ defmodule PhoenixKitCustomerSupport.Migrations do
   `:customer_support` instead — proposed here as prose only; core is a
   separate repo and this PR does not edit it.
 
-  ### Phase 0 — this V1 adopts, and changes NOTHING
+  ### Phase 0 — this V1 adopts (plus the one `changed_by_uuid` relaxation)
 
   `CREATE TABLE IF NOT EXISTS` shape-identical to core's `V135`/`V164`/`V168`
   baseline, under core's exact object names (every pkey, the one check
@@ -301,8 +301,8 @@ defmodule PhoenixKitCustomerSupport.Migrations do
 
   `target` selects how much of the chain to emit (default
   `current_version/0`): `0` applies nothing (not an operation — clearing
-  the marker is `down/1`'s job); `1` is the pure `V135`/`V164`/`V168`-adoption
-  step across all 4 tables.
+  the marker is `down/1`'s job); `1` is the `V135`/`V164`/`V168`-adoption step
+  across all 4 tables (plus the `changed_by_uuid` relaxation).
   """
   @spec up_statements(String.t(), non_neg_integer()) :: [String.t()]
   def up_statements(prefix \\ @default_prefix, target \\ @current_version)
@@ -320,9 +320,10 @@ defmodule PhoenixKitCustomerSupport.Migrations do
 
   @doc """
   The SQL `down/1` executes, as data (marker bookkeeping only, on the
-  anchor table). V1 changes no shape of its own — it is pure adoption — so
-  there is nothing to drop beyond the marker; all 4 tables and every row in
-  them are left untouched, for any target including `0`.
+  anchor table). All 4 tables and every row in them are left untouched, for
+  any target including `0`. V1's `changed_by_uuid` relaxation is deliberately
+  not reverted: rows written after it may already hold `NULL` (a deleted
+  user's `ON DELETE SET NULL`), so `SET NOT NULL` could fail the rollback.
   """
   @spec down_statements(String.t(), non_neg_integer()) :: [String.t()]
   def down_statements(prefix \\ @default_prefix, target \\ 0)

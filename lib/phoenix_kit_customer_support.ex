@@ -197,13 +197,14 @@ defmodule PhoenixKitCustomerSupport do
   def module_name, do: "Customer Support"
 
   @impl PhoenixKit.Module
-  def version, do: "0.3.0"
+  def version, do: "0.4.0"
 
   @impl PhoenixKit.Module
   def route_module, do: PhoenixKitCustomerSupport.Routes
 
   # Declares this module's own migration chain — V1 adopts the 4 ticket
-  # tables' current core-created shape; nothing else changes on any install.
+  # tables' current core-created shape; its one real change is relaxing
+  # `phoenix_kit_ticket_status_history.changed_by_uuid` to nullable.
   @impl PhoenixKit.Module
   def migration_module, do: PhoenixKitCustomerSupport.Migrations
 

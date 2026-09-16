@@ -69,7 +69,7 @@ defmodule PhoenixKitCustomerSupport.TicketStatusHistory do
   @type t :: %__MODULE__{
           uuid: UUIDv7.t() | nil,
           ticket_uuid: UUIDv7.t(),
-          changed_by_uuid: UUIDv7.t(),
+          changed_by_uuid: UUIDv7.t() | nil,
           from_status: String.t() | nil,
           to_status: String.t(),
           reason: String.t() | nil,
@@ -126,6 +126,8 @@ defmodule PhoenixKitCustomerSupport.TicketStatusHistory do
       :reason
     ])
     |> validate_required([:ticket_uuid, :changed_by_uuid, :to_status])
+    |> validate_length(:from_status, max: @column_widths.from_status)
+    |> validate_length(:to_status, max: @column_widths.to_status)
     |> validate_length(:reason, max: 1000)
     |> foreign_key_constraint(:ticket_uuid)
     |> foreign_key_constraint(:changed_by_uuid)

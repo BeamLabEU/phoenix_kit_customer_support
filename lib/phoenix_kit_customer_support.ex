@@ -217,6 +217,13 @@ defmodule PhoenixKitCustomerSupport do
   # own list for these tables stays in force.
   def file_references, do: PhoenixKitCustomerSupport.FileReferences.pairs()
 
+  @doc """
+  The manifest of this module's tables, for `mix phoenix_kit.repair` and
+  `mix phoenix_kit.doctor`; see `PhoenixKitCustomerSupport.ExpectedSchema`.
+  """
+  # No `@impl`, for the same reason as `file_references/0`.
+  def expected_schema, do: PhoenixKitCustomerSupport.ExpectedSchema
+
   @impl PhoenixKit.Module
   def css_sources, do: [:phoenix_kit_customer_support]
 

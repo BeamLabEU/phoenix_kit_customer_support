@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **The module now tells core's orphan-file check which of its rows point at a stored file** (`file_references/0`, in `FileReferences`): `phoenix_kit_ticket_attachments`. The SQL moved here verbatim from core's `PhoenixKit.Modules.Storage`; a test compares it with core's own copy. Core reads the callback from the first release after 2.64.1; before that, core's own list stays in force. No migration, no change in what counts as an orphan.
+
 ## 0.4.0 - 2026-09-16
 
 ### Added

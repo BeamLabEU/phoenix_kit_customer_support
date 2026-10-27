@@ -27,9 +27,9 @@ defmodule PhoenixKitCustomerSupport.CorePinConformanceTest do
   """
 
   # Floor: core 2.4.0 (`Slug.put_slug/3` + V168 unique ticket slug).
-  @floor "2.4.0"
-  @must_admit ["2.4.0", "2.4.9", "2.5.0", "2.9.4"]
-  @must_reject ["1.7.189", "1.7.236", "1.9.4", "2.0.0", "2.3.9", "3.0.0"]
+  @floor "2.65.0"
+  @must_admit ["2.65.0", "2.65.1", "2.99.4", "3.0.0", "3.9.9"]
+  @must_reject ["1.7.189", "1.7.236", "1.9.4", "2.0.0", "2.3.9", "2.64.9", "4.0.0"]
 
   test "the phoenix_kit requirement admits every core 2.x at or above the floor" do
     requirement = core_requirement()

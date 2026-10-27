@@ -73,7 +73,9 @@ defmodule PhoenixKitCustomerSupport.MixProject do
       # host's app, not ours. Keep this TWO-segment: `~> 2.4.x` expands to
       # `< 2.5.0` and excludes every later core minor, which is the failure
       # mode `test/core_pin_conformance_test.exs` guards.
-      pk_dep(:phoenix_kit, "~> 2.4"),
+      # Floor 2.65.0: the first core with the `file_references/0` and `expected_schema/0`
+      # callbacks this module implements (`@impl`). The ceiling is open through core 3.x.
+      pk_dep(:phoenix_kit, ">= 2.65.0 and < 4.0.0"),
       {:gettext, "~> 1.0"},
       {:phoenix_live_view, "~> 1.1"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

@@ -18,13 +18,6 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
   none of them touch a database.
   """
 
-  @ticket_tables ~w(
-    phoenix_kit_tickets
-    phoenix_kit_ticket_comments
-    phoenix_kit_ticket_attachments
-    phoenix_kit_ticket_status_history
-  )
-
   test "PhoenixKitCustomerSupport declares the module-owned migration chain" do
     # Assert the VALUE, not `function_exported?/3` — `use PhoenixKit.Module`
     # injects an overridable default `migration_module/0`, so exportedness
@@ -324,8 +317,6 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
   end
 
   describe "the chain can never destroy any of the 4 tables" do
-    alias PhoenixKit.Migrations.ExpectedSchema
-
     # Compared against the WHOLE expected content, not scanned for a
     # forbidden substring — a substring check only sees statements the
     # builder produced, so anything appended past it (a literal
@@ -415,40 +406,6 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
       end
     end
 
-    # Core's manifest for the 4 ticket tables' index/constraint objects, not
-    # a hand-typed list — a hand-typed list is maintained by the same hand
-    # that adds a statement, so it catches a slip but never a deliberate
-    # one; the manifest is written on core's side, so this fails both when
-    # the chain emits an object core does not declare AND when core
-    # declares an object the chain stopped adopting. The check constraint
-    # and the pkeys are `class: :constraint` in the manifest too, so they
-    # are picked up by the same filter as the FKs — no separate handling
-    # needed.
-    test "up_statements/2 emits exactly the index/constraint operations core's manifest declares for the 4 ticket tables" do
-      for prefix <- ["public", "tickets_alt"] do
-        actual =
-          Migrations.up_statements(prefix, 1)
-          |> Enum.reject(
-            &(String.starts_with?(&1, "CREATE TABLE") or
-                String.starts_with?(&1, "ALTER TABLE") or
-                String.starts_with?(&1, "COMMENT ON TABLE"))
-          )
-          |> Enum.map(&operation/1)
-
-        expected = expected_index_constraint_operations()
-
-        assert Enum.sort(actual) == Enum.sort(expected),
-               """
-               up_statements(#{inspect(prefix)}, 1) does not emit the operation set
-               core's ExpectedSchema declares for the 4 ticket tables' indexes and
-               constraints.
-
-               unexpected: #{inspect(Enum.sort(actual) -- Enum.sort(expected))}
-               missing:    #{inspect(Enum.sort(expected) -- Enum.sort(actual))}
-               """
-      end
-    end
-
     test "the 1 real unique index is present, and only it" do
       unique_indexes =
         Migrations.up_statements()
@@ -458,36 +415,6 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
         |> Enum.sort()
 
       assert unique_indexes == ["phoenix_kit_tickets_slug_index"]
-    end
-
-    defp expected_index_constraint_operations do
-      ticket_tables = @ticket_tables
-
-      ExpectedSchema.objects("public")
-      |> Enum.filter(fn object ->
-        case object.check do
-          {_kind, %{table: table}} ->
-            table in ticket_tables and object.class in [:index, :constraint] and
-              Map.get(object, :presence) == :required
-
-          _ ->
-            false
-        end
-      end)
-      |> Enum.map(fn object ->
-        name = object.check |> elem(1) |> Map.fetch!(:name)
-
-        case object.class do
-          :constraint -> {"DO", name}
-          :index -> {index_verb(object.create), name}
-        end
-      end)
-    end
-
-    defp index_verb(create) do
-      if String.starts_with?(create, "CREATE UNIQUE INDEX"),
-        do: "CREATE UNIQUE INDEX",
-        else: "CREATE INDEX"
     end
 
     # `ON DELETE ...` is part of the foreign key's DEFINITION — the word
@@ -611,7 +538,6 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
   end
 
   describe "V1 stays aligned with core's manifest (while core audits the tables)" do
-    alias PhoenixKit.Migrations.ExpectedSchema
     alias PhoenixKitCustomerSupport.Ticket
     alias PhoenixKitCustomerSupport.TicketStatusHistory
 
@@ -647,80 +573,6 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
                declared:        #{inspect(schema.column_widths())}
                """
       end
-    end
-
-    # Core's V135/V164/V168 baseline still creates these tables and core's
-    # ExpectedSchema audits that shape, so until the first shape-changing
-    # chain version the two DDLs must agree — with ONE documented exception:
-    # `phoenix_kit_ticket_status_history.changed_by_uuid`'s nullability (see
-    # the moduledoc). That single field is excluded here and asserted on its
-    # own, explicitly, in the next test — so a future manifest fix that
-    # makes core agree with us does not silently vanish into a passing test,
-    # it makes the next test fail loudly instead.
-    test "every column core declares matches V1's, in full, for every table — except the documented changed_by_uuid deviation" do
-      statements = Migrations.up_statements("public", 1)
-
-      for table <- @ticket_tables do
-        core = core_columns(table)
-        ours = v1_columns(statements, table)
-
-        assert Map.keys(ours) -- Map.keys(core) == [],
-               "#{table}: V1 creates columns core's manifest does not declare: " <>
-                 inspect(Map.keys(ours) -- Map.keys(core))
-
-        assert Map.keys(core) -- Map.keys(ours) == [],
-               "#{table}: V1 does not create columns core's manifest declares: " <>
-                 inspect(Map.keys(core) -- Map.keys(ours))
-
-        for {column, expected} <- core,
-            {table, column} != {"phoenix_kit_ticket_status_history", "changed_by_uuid"} do
-          assert Map.fetch!(ours, column) == expected,
-                 """
-                 #{table}.#{column}: V1 and core's manifest disagree on the column's shape.
-
-                 V1:              #{inspect(Map.fetch!(ours, column))}
-                 core's manifest: #{inspect(expected)}
-
-                 V1 is an adoption and must be shape-identical to core's
-                 baseline. A deliberate change is a chain version (V2+).
-                 """
-        end
-      end
-    end
-
-    test "the changed_by_uuid deviation from core's manifest is exactly the documented one" do
-      statements = Migrations.up_statements("public", 1)
-      ours = v1_columns(statements, "phoenix_kit_ticket_status_history")
-      core = core_columns("phoenix_kit_ticket_status_history")
-
-      ours_shape = Map.fetch!(ours, "changed_by_uuid")
-      core_shape = Map.fetch!(core, "changed_by_uuid")
-
-      # V1 deliberately creates this column NULLABLE, matching its FK's
-      # `ON DELETE SET NULL` and every real, historically-migrated install
-      # — NOT core's literal (self-contradictory) v135.ex/manifest text.
-      # See the moduledoc's "changed_by_uuid nullability discrepancy"
-      # section. Every OTHER field of the column's shape still matches.
-      assert ours_shape.not_null == false
-      assert core_shape.not_null == true
-
-      assert Map.delete(ours_shape, :not_null) == Map.delete(core_shape, :not_null),
-             "changed_by_uuid diverges from core's manifest in more than just " <>
-               "not_null — that is not the documented deviation"
-    end
-
-    # `%{type, default, not_null}` per column, from the newest revision.
-    defp core_columns(table) do
-      prefix = "column:#{table}."
-
-      ExpectedSchema.objects("public")
-      |> Enum.filter(&(&1.class == :column and String.starts_with?(&1.id, prefix)))
-      |> Map.new(fn object ->
-        {_version, shape} = List.last(object.revisions)
-
-        {String.replace_prefix(object.id, prefix, ""),
-         %{type: shape.type, default: shape.default, not_null: shape.not_null}}
-      end)
     end
 
     # The same shape, parsed back out of the CREATE TABLE V1 emits for

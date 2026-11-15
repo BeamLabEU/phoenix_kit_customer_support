@@ -65,17 +65,13 @@ defmodule PhoenixKitCustomerSupport.MixProject do
 
   defp deps do
     [
-      # 2.4 is a hard floor: Ticket.changeset/2 calls
-      # PhoenixKit.Utils.Slug.put_slug/3, which core added in 2.4.0 (and V168
-      # made phoenix_kit_tickets.slug unique). Under the previous `~> 2.0` a
-      # host resolving 2.0–2.3 compiled fine and then raised
-      # UndefinedFunctionError on every ticket create or update — in the
-      # host's app, not ours. Keep this TWO-segment: `~> 2.4.x` expands to
-      # `< 2.5.0` and excludes every later core minor, which is the failure
-      # mode `test/core_pin_conformance_test.exs` guards.
-      # Floor 2.65.0: the first core with the `file_references/0` and `expected_schema/0`
-      # callbacks this module implements (`@impl`). The ceiling is open through core 3.x.
-      pk_dep(:phoenix_kit, ">= 2.65.0 and < 4.0.0"),
+      # Floor 3.5.0, the minimum core every PhoenixKit module requires. It
+      # carries everything this module builds on: `Utils.Slug.put_slug/3`
+      # (which `Ticket.changeset/2` calls) and the `file_references/0` and
+      # `expected_schema/0` callbacks.
+      # Patch-precise floor in the compound form, so the ceiling stays open
+      # through every core 3.x (see test/core_pin_conformance_test.exs).
+      pk_dep(:phoenix_kit, ">= 3.5.0 and < 4.0.0"),
       {:gettext, "~> 1.0"},
       {:phoenix_live_view, "~> 1.1"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

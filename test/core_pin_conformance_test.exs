@@ -5,33 +5,25 @@ defmodule PhoenixKitCustomerSupport.CorePinConformanceTest do
   Guards the `:phoenix_kit` requirement against being re-narrowed to a
   single core MINOR.
 
-  The trap is the three-segment form: `~> 2.4.x` expands to
-  `>= 2.4.x and < 2.5.0`, so no 2.5 or later core satisfies it. The breakage
+  The trap is the three-segment form: `~> 3.5.x` expands to
+  `>= 3.5.x and < 3.6.0`, so no 3.6 or later core satisfies it. The breakage
   lands on consumers, not here — a host depending on both this module and a
   newer core minor gets an unsolvable dependency set and `mix deps.get`
   fails outright, with no degraded mode. Nothing else in this repo's own
   test run would notice.
 
-  Raising the two-segment FLOOR is allowed and required: `~> 2.4` still
-  admits every later 2.x, and the floor has to track the oldest core that
-  has every function this module calls. `Ticket.changeset/2` calls
-  `PhoenixKit.Utils.Slug.put_slug/3`, added in core 2.4.0; core's own
-  release note tells adopters to pin `~> 2.4` for exactly that reason. A
-  floor left at 2.0 lets `mix deps.get` resolve a core without the function
-  and moves the failure to an `UndefinedFunctionError` on the host's first
-  ticket save.
-
-  Core 1.7 is deliberately excluded: core 2.0.0 squashed the migration
-  chain to a V135 floor, and this module is only verified against that
-  baseline.
+  The requirement is `>= 3.5.0 and < 4.0.0`. The floor is the minimum core
+  every PhoenixKit module requires; it carries everything this module builds
+  on: `PhoenixKit.Utils.Slug.put_slug/3` (which `Ticket.changeset/2` calls)
+  and the `file_references/0` and `expected_schema/0` callbacks. The ceiling
+  is open through every core 3.x.
   """
 
-  # Floor: core 2.4.0 (`Slug.put_slug/3` + V168 unique ticket slug).
-  @floor "2.65.0"
-  @must_admit ["2.65.0", "2.65.1", "2.99.4", "3.0.0", "3.9.9"]
-  @must_reject ["1.7.189", "1.7.236", "1.9.4", "2.0.0", "2.3.9", "2.64.9", "4.0.0"]
+  @floor "3.5.0"
+  @must_admit ["3.5.0", "3.5.1", "3.6.0", "3.9.9"]
+  @must_reject ["1.7.236", "2.0.0", "2.65.0", "2.99.4", "3.0.0", "3.4.0", "3.4.9", "4.0.0"]
 
-  test "the phoenix_kit requirement admits every core 2.x at or above the floor" do
+  test "the phoenix_kit requirement admits every core 3.x at or above the floor" do
     requirement = core_requirement()
 
     assert match?({:ok, _parsed}, Version.parse_requirement(requirement)),
@@ -41,7 +33,9 @@ defmodule PhoenixKitCustomerSupport.CorePinConformanceTest do
       assert Version.match?(version, requirement),
              "`:phoenix_kit` requirement #{inspect(requirement)} rejects core #{version}. " <>
                "A pin that excludes a core minor at or above the floor breaks `mix deps.get` " <>
-               "for every host running this module alongside that core. Keep it two-segment."
+               "for every host running this module alongside that core. Keep the floor " <>
+               "patch-precise and the ceiling open (`>= 3.5.0 and < 4.0.0`), never a " <>
+               "three-segment `~>`."
     end
 
     for version <- @must_reject do

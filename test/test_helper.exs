@@ -87,59 +87,6 @@ Application.put_env(:phoenix_kit_customer_support, :test_repo_available, repo_av
 {:ok, _pid} = PhoenixKit.PubSub.Manager.start_link([])
 {:ok, _pid} = PhoenixKit.ModuleRegistry.start_link([])
 
-require Logger
-
-# i18n tests require phoenix_kit with the `gettext_backend` API
-# (see BeamLabEU/phoenix_kit#522). Until that ships in a Hex release,
-# CI building against the published phoenix_kit lacks
-# `PhoenixKit.Dashboard.Tab.localized_label/1` and the assertions
-# would raise `UndefinedFunctionError`. Detect availability and
-# exclude those tests when the API is missing — they run automatically
-# the moment the consumer's `phoenix_kit` dep resolves to a release
-# that includes the API.
-i18n_api_available =
-  if Code.ensure_loaded?(PhoenixKit.Dashboard.Tab) and
-       function_exported?(PhoenixKit.Dashboard.Tab, :localized_label, 1) do
-    true
-  else
-    Logger.info(
-      "[test_helper] PhoenixKit.Dashboard.Tab.localized_label/1 not available — " <>
-        "i18n tests excluded. They will run automatically once `phoenix_kit` is " <>
-        "upgraded to a release that ships the gettext_backend API."
-    )
-
-    false
-  end
-
 exclude = if repo_available, do: [], else: [:integration]
-exclude = if i18n_api_available, do: exclude, else: [:requires_phoenix_kit_i18n_api | exclude]
 
-# The builds-alone test needs `PhoenixKit.TestSupport.ModuleChainCheck`, which
-# ships in the first core release after 2.64.1; against an older core it is
-# excluded.
-chain_check_exclude =
-  if Code.ensure_loaded?(PhoenixKit.TestSupport.ModuleChainCheck),
-    do: [],
-    else: [:requires_module_chain_check]
-
-# The file-references test compares against core's own list, which the first
-# core release after 2.64.1 exposes as `Storage.builtin_file_references/0`;
-# against an older core it is excluded.
-file_refs_exclude =
-  if Code.ensure_loaded?(PhoenixKit.Modules.Storage) and
-       function_exported?(PhoenixKit.Modules.Storage, :builtin_file_references, 0),
-     do: [],
-     else: [:requires_core_file_references]
-
-# The manifest test builds the module's tables with `ModuleChainCheck.build_alone/4`
-# and hands the manifest to repair (`PhoenixKit.Module.expected_schema/0`); both
-# arrive in the first core release after 2.64.1.
-expected_schema_exclude =
-  if Code.ensure_loaded?(PhoenixKit.TestSupport.ModuleChainCheck) and
-       function_exported?(PhoenixKit.TestSupport.ModuleChainCheck, :build_alone, 4),
-     do: [],
-     else: [:requires_core_expected_schema]
-
-ExUnit.start(
-  exclude: chain_check_exclude ++ file_refs_exclude ++ expected_schema_exclude ++ exclude
-)
+ExUnit.start(exclude: exclude)

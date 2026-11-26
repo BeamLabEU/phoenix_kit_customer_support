@@ -86,6 +86,15 @@ Application.put_env(:phoenix_kit_customer_support, :test_repo_available, repo_av
 
 {:ok, _pid} = PhoenixKit.PubSub.Manager.start_link([])
 {:ok, _pid} = PhoenixKit.ModuleRegistry.start_link([])
+# Core's limiter behind `PhoenixKitCustomerSupport.RateLimit`.
+{:ok, _pid} = PhoenixKit.Users.RateLimiter.Backend.start_link([])
+
+# `Paths` builds bare paths the test router matches.
+:persistent_term.put({PhoenixKit.Config, :url_prefix}, "/")
+
+if repo_available do
+  {:ok, _} = PhoenixKitCustomerSupport.Test.Endpoint.start_link()
+end
 
 exclude = if repo_available, do: [], else: [:integration]
 

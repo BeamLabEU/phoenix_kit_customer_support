@@ -10,6 +10,8 @@ defmodule PhoenixKitCustomerSupport.Paths do
   @admin_tickets "/admin/customer-support/tickets"
   @settings_base "/admin/settings/customer-support"
   @user_tickets "/dashboard/customer-support/tickets"
+  @guest_request "/support/request"
+  @guest_tickets "/support/requests"
 
   def tickets_path, do: Routes.path(@admin_tickets)
   def new_ticket_path, do: Routes.path("#{@admin_tickets}/new")
@@ -20,4 +22,13 @@ defmodule PhoenixKitCustomerSupport.Paths do
   def user_tickets_path, do: Routes.path(@user_tickets)
   def user_new_ticket_path, do: Routes.path("#{@user_tickets}/new")
   def user_ticket_path(id), do: Routes.path("#{@user_tickets}/#{id}")
+
+  @doc "Public guest request form (`allow_anonymous_requests`)."
+  def guest_request_path, do: Routes.path(@guest_request)
+
+  @doc "A guest's request page, reached through its signed token."
+  def guest_ticket_path(token), do: Routes.path("#{@guest_tickets}/#{token}")
+
+  @doc "Absolute URL of a guest's request page (for emails)."
+  def guest_ticket_url(token), do: Routes.url("#{@guest_tickets}/#{token}")
 end

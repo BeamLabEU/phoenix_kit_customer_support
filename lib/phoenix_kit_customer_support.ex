@@ -62,6 +62,7 @@ defmodule PhoenixKitCustomerSupport do
 
   alias PhoenixKitCustomerSupport.{
     Events,
+    GuestRequests,
     Ticket,
     TicketAttachment,
     TicketComment,
@@ -157,7 +158,9 @@ defmodule PhoenixKitCustomerSupport do
         Settings.get_boolean_setting("customer_support_internal_notes_enabled", true),
       attachments_enabled:
         Settings.get_boolean_setting("customer_support_attachments_enabled", true),
-      allow_reopen: Settings.get_boolean_setting("customer_support_allow_reopen", true)
+      allow_reopen: Settings.get_boolean_setting("customer_support_allow_reopen", true),
+      allow_anonymous_requests:
+        Settings.get_boolean_setting("customer_support_allow_anonymous_requests", false)
     }
   end
 
@@ -173,13 +176,14 @@ defmodule PhoenixKitCustomerSupport do
   end
 
   defp count_tickets do
-    repo().aggregate(Ticket, :count, :uuid)
+    Ticket |> exclude_unverified_guests() |> repo().aggregate(:count, :uuid)
   rescue
     _ -> 0
   end
 
   defp count_tickets_by_status(status) do
     from(t in Ticket, where: t.status == ^status)
+    |> exclude_unverified_guests()
     |> repo().aggregate(:count)
   rescue
     _ -> 0
@@ -465,6 +469,9 @@ defmodule PhoenixKitCustomerSupport do
     - `:page` - Page number (default: 1)
     - `:per_page` - Items per page (default: 20)
     - `:preload` - Associations to preload
+    - `:include_unverified_guests` - also return guest requests whose email
+      was never verified (hidden by default, see
+      `PhoenixKitCustomerSupport.GuestRequests`)
 
   ## Examples
 
@@ -488,6 +495,11 @@ defmodule PhoenixKitCustomerSupport do
     |> maybe_filter_by_assigned_to(assigned_to_uuid)
     |> maybe_filter_by_status(status)
     |> maybe_search_tickets(search)
+    |> then(fn query ->
+      if Keyword.get(opts, :include_unverified_guests, false),
+        do: query,
+        else: exclude_unverified_guests(query)
+    end)
     |> order_by([t], desc: t.inserted_at)
     |> paginate(page, per_page)
     |> repo().all()
@@ -750,12 +762,22 @@ defmodule PhoenixKitCustomerSupport do
           increment_comment_count(ticket_uuid)
           ticket = repo().get(Ticket, ticket_uuid)
           Events.broadcast_comment_created(comment, ticket)
-          comment
+          {comment, ticket}
 
         {:error, changeset} ->
           repo().rollback(changeset)
       end
     end)
+    |> case do
+      {:ok, {comment, ticket}} ->
+        # A staff (or account) reply on a guest request mails the guest a
+        # fresh link: they have no account to be notified through.
+        if ticket && Ticket.guest?(ticket), do: GuestRequests.notify_reply(ticket, comment)
+        {:ok, comment}
+
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -1048,6 +1070,7 @@ defmodule PhoenixKitCustomerSupport do
 
   defp count_unassigned_tickets do
     from(t in Ticket, where: is_nil(t.assigned_to_uuid) and t.status in ["open", "in_progress"])
+    |> exclude_unverified_guests()
     |> repo().aggregate(:count)
   rescue
     _ -> 0
@@ -1056,6 +1079,14 @@ defmodule PhoenixKitCustomerSupport do
   # ============================================================================
   # Private Helpers
   # ============================================================================
+
+  @doc false
+  # A guest request stays out of staff lists and counts until its requester
+  # opened the emailed link (`GuestRequests.verify/1`): an open guest form
+  # otherwise lets anyone fill the queue with unverifiable addresses.
+  def exclude_unverified_guests(query) do
+    where(query, [t], is_nil(t.guest_email) or not is_nil(t.guest_verified_at))
+  end
 
   defp maybe_filter_by_user(query, nil), do: query
 

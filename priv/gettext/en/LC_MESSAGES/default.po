@@ -37,72 +37,297 @@ msgstr "Configure customer support module behavior and features"
 msgid "Statistics"
 msgstr "Statistics"
 
+#: lib/phoenix_kit_customer_support.ex:172
 #: lib/phoenix_kit_customer_support/web/settings.html.heex:18
 #, elixir-autogen, elixir-format
 msgid "Total"
 msgstr "Total"
 
+#: lib/phoenix_kit_customer_support.ex:173
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:104
 #: lib/phoenix_kit_customer_support/web/settings.html.heex:22
 #, elixir-autogen, elixir-format
 msgid "Open"
 msgstr "Open"
 
+#: lib/phoenix_kit_customer_support.ex:174
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:105
 #: lib/phoenix_kit_customer_support/web/settings.html.heex:26
 #, elixir-autogen, elixir-format
 msgid "In Progress"
 msgstr "In Progress"
 
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:106
 #: lib/phoenix_kit_customer_support/web/settings.html.heex:30
 #, elixir-autogen, elixir-format
 msgid "Resolved"
 msgstr "Resolved"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:42
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:41
 #, elixir-autogen, elixir-format
 msgid "Module Configuration"
 msgstr "Module Configuration"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:48
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:47
 #, elixir-autogen, elixir-format
 msgid "Tickets Per Page"
 msgstr "Tickets Per Page"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:67
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:68
 #, elixir-autogen, elixir-format
 msgid "Features"
 msgstr "Features"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:78
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:81
 #, elixir-autogen, elixir-format
 msgid "Internal Notes"
 msgstr "Internal Notes"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:80
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:83
 #, elixir-autogen, elixir-format
 msgid "Allow staff-only notes that are hidden from customers"
 msgstr "Allow staff-only notes that are hidden from customers"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:95
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:101
 #, elixir-autogen, elixir-format
 msgid "Attachments"
 msgstr "Attachments"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:97
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:103
 #, elixir-autogen, elixir-format
 msgid "Allow uploading files to tickets and comments"
 msgstr "Allow uploading files to tickets and comments"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:109
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:115
 #, elixir-autogen, elixir-format
 msgid "Workflow"
 msgstr "Workflow"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:119
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:128
 #, elixir-autogen, elixir-format
 msgid "Allow Reopening Tickets"
 msgstr "Allow Reopening Tickets"
 
-#: lib/phoenix_kit_customer_support/web/settings.html.heex:121
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:130
 #, elixir-autogen, elixir-format
 msgid "Allow resolved or closed tickets to be reopened"
 msgstr "Allow resolved or closed tickets to be reopened"
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:148
+#, elixir-autogen, elixir-format
+msgid "Allow Requests Without an Account"
+msgstr "Allow Requests Without an Account"
+
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:107
+#, elixir-autogen, elixir-format
+msgid "Closed"
+msgstr "Closed"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:22
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:87
+#, elixir-autogen, elixir-format
+msgid "Contact support"
+msgstr "Contact support"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:160
+#, elixir-autogen, elixir-format
+msgid "Email me my links"
+msgstr "Email me my links"
+
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:130
+#, elixir-autogen, elixir-format
+msgid "Get a fresh link by email"
+msgstr "Get a fresh link by email"
+
+#: lib/phoenix_kit_customer_support/web/guest_labels.ex:7
+#, elixir-autogen, elixir-format
+msgid "Guest"
+msgstr "Guest"
+
+#: lib/phoenix_kit_customer_support/web/guest_labels.ex:8
+#, elixir-autogen, elixir-format
+msgid "Guest (no account)"
+msgstr "Guest (no account)"
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:74
+#, elixir-autogen, elixir-format
+msgid "Hello %{name},"
+msgstr "Hello %{name},"
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:76
+#, elixir-autogen, elixir-format
+msgid "Hello,"
+msgstr "Hello,"
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:63
+#, elixir-autogen, elixir-format
+msgid "Here are the links to your open support requests:"
+msgstr "Here are the links to your open support requests:"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:114
+#, elixir-autogen, elixir-format
+msgid "How can we help?"
+msgstr "How can we help?"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:140
+#, elixir-autogen, elixir-format
+msgid "If we have open requests for that address, we have emailed fresh links to it."
+msgstr "If we have open requests for that address, we have emailed fresh links to it."
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:68
+#, elixir-autogen, elixir-format
+msgid "If you did not ask for these links, you can ignore this email."
+msgstr "If you did not ask for these links, you can ignore this email."
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:35
+#, elixir-autogen, elixir-format
+msgid "If you did not send this request, you can ignore this email."
+msgstr "If you did not send this request, you can ignore this email."
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:121
+#, elixir-autogen, elixir-format
+msgid "Leave this field empty"
+msgstr "Leave this field empty"
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:62
+#, elixir-autogen, elixir-format
+msgid "Links to your support requests"
+msgstr "Links to your support requests"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:138
+#, elixir-autogen, elixir-format
+msgid "Lost your link?"
+msgstr "Lost your link?"
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:45
+#, elixir-autogen, elixir-format
+msgid "New reply to your support request: %{title}"
+msgstr "New reply to your support request: %{title}"
+
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:70
+#, elixir-autogen, elixir-format
+msgid "Please write a reply first."
+msgstr "Please write a reply first."
+
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:172
+#, elixir-autogen, elixir-format
+msgid "Send reply"
+msgstr "Send reply"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:132
+#, elixir-autogen, elixir-format
+msgid "Send request"
+msgstr "Send request"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:131
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:171
+#, elixir-autogen, elixir-format
+msgid "Sending…"
+msgstr "Sending…"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:111
+#, elixir-autogen, elixir-format
+msgid "Subject"
+msgstr "Subject"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:72
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:90
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:123
+#, elixir-autogen, elixir-format
+msgid "Support requests without an account are not available."
+msgstr "Support requests without an account are not available."
+
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:102
+#, elixir-autogen, elixir-format
+msgid "Support team"
+msgstr "Support team"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:96
+#, elixir-autogen, elixir-format
+msgid "Thank you. We have sent you an email with a link to your request. Open it to confirm your address; then you can follow the request and reply."
+msgstr "Thank you. We have sent you an email with a link to your request. Open it to confirm your address; then you can follow the request and reply."
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:81
+#, elixir-autogen, elixir-format
+msgid "The link is valid for %{count} day. Each new reply sends you a fresh one."
+msgid_plural "The link is valid for %{count} days. Each new reply sends you a fresh one."
+msgstr[0] "The link is valid for %{count} day. Each new reply sends you a fresh one."
+msgstr[1] "The link is valid for %{count} days. Each new reply sends you a fresh one."
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:48
+#, elixir-autogen, elixir-format
+msgid "There is a new reply to your request. Read it and answer here:"
+msgstr "There is a new reply to your request. Read it and answer here:"
+
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:125
+#, elixir-autogen, elixir-format
+msgid "This link has expired."
+msgstr "This link has expired."
+
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:127
+#, elixir-autogen, elixir-format
+msgid "This link is invalid."
+msgstr "This link is invalid."
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:73
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:177
+#, elixir-autogen, elixir-format
+msgid "This request is closed and no longer takes replies."
+msgstr "This request is closed and no longer takes replies."
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:70
+#, elixir-autogen, elixir-format
+msgid "Too many attempts. Please wait a while and try again."
+msgstr "Too many attempts. Please wait a while and try again."
+
+#: lib/phoenix_kit_customer_support/web/settings.html.heex:151
+#, elixir-autogen, elixir-format
+msgid "Visitors can send a request with their name and email from the public support page. They confirm their email through a link, and requests stay hidden from the ticket list until they do."
+msgstr "Visitors can send a request with their name and email from the public support page. They confirm their email through a link, and requests stay hidden from the ticket list until they do."
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:27
+#, elixir-autogen, elixir-format
+msgid "We received your request. Open the link below to confirm your email address, follow the request and reply to it:"
+msgstr "We received your request. Open the link below to confirm your email address, follow the request and reply to it:"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:110
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:153
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:154
+#, elixir-autogen, elixir-format
+msgid "Your email"
+msgstr "Your email"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:109
+#, elixir-autogen, elixir-format
+msgid "Your name"
+msgstr "Your name"
+
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:167
+#, elixir-autogen, elixir-format
+msgid "Your reply"
+msgstr "Your reply"
+
+#: lib/phoenix_kit_customer_support/web/guest_new.ex:74
+#, elixir-autogen, elixir-format
+msgid "Your request could not be sent. Please try again later."
+msgstr "Your request could not be sent. Please try again later."
+
+#: lib/phoenix_kit_customer_support/web/guest_ticket.ex:28
+#, elixir-autogen, elixir-format
+msgid "Your support request"
+msgstr "Your support request"
+
+#: lib/phoenix_kit_customer_support/guest_notifier.ex:24
+#, elixir-autogen, elixir-format
+msgid "Your support request: %{title}"
+msgstr "Your support request: %{title}"
+
+#: lib/phoenix_kit_customer_support/web/guest_labels.ex:9
+#, elixir-autogen, elixir-format
+msgid "email confirmed"
+msgstr "email confirmed"
+
+#: lib/phoenix_kit_customer_support/web/guest_labels.ex:10
+#, elixir-autogen, elixir-format
+msgid "email not confirmed"
+msgstr "email not confirmed"

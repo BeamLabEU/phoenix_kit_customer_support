@@ -100,7 +100,8 @@
               [
                 %{
                   label: "Customer",
-                  value: (ticket.user && ticket.user.email) || "Unknown"
+                  value:
+                    (ticket.user && ticket.user.email) || ticket.guest_email || "Unknown"
                 },
                 %{
                   label: "Assigned",
@@ -249,7 +250,14 @@
                       <span class="text-sm truncate min-w-0 flex-1">{ticket.user.email}</span>
                     </div>
                   <% else %>
-                    <span class="text-base-content/50">Unknown</span>
+                    <%= if ticket.guest_email do %>
+                      <div class="flex items-center gap-2 min-w-0">
+                        <span class="badge badge-ghost badge-sm">{PhoenixKitCustomerSupport.Web.GuestLabels.guest()}</span>
+                        <span class="text-sm truncate min-w-0 flex-1">{ticket.guest_email}</span>
+                      </div>
+                    <% else %>
+                      <span class="text-base-content/50">Unknown</span>
+                    <% end %>
                   <% end %>
                 </.table_default_cell>
                 <.table_default_cell class="hidden lg:table-cell">

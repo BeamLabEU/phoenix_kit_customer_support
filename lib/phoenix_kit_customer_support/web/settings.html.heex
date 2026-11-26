@@ -132,6 +132,34 @@
             </div>
           </label>
         </div>
+
+        <%!-- Anonymous requests (off by default) --%>
+        <div class="fieldset">
+          <label class="label cursor-pointer justify-start gap-4">
+            <input
+              id="toggle-anonymous-requests"
+              type="checkbox"
+              class="toggle"
+              checked={@allow_anonymous_requests}
+              phx-click="toggle_anonymous_requests"
+            />
+            <div>
+              <span class="fieldset-legend font-medium">
+                {gettext("Allow Requests Without an Account")}
+              </span>
+              <p class="text-sm text-base-content/50">
+                {gettext(
+                  "Visitors can send a request with their name and email from the public support page. They confirm their email through a link, and requests stay hidden from the ticket list until they do."
+                )}
+              </p>
+              <p :if={@allow_anonymous_requests} class="text-sm mt-1">
+                <.link navigate={PhoenixKitCustomerSupport.Paths.guest_request_path()} class="link">
+                  {PhoenixKitCustomerSupport.Paths.guest_request_path()}
+                </.link>
+              </p>
+            </div>
+          </label>
+        </div>
       </div>
     </div>
   </div>

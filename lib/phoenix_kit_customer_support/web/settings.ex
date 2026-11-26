@@ -53,6 +53,16 @@ defmodule PhoenixKitCustomerSupport.Web.Settings do
   end
 
   @impl true
+  def handle_event("toggle_anonymous_requests", _params, socket) do
+    toggle_boolean_setting(
+      socket,
+      "customer_support_allow_anonymous_requests",
+      :allow_anonymous_requests,
+      "Requests without an account"
+    )
+  end
+
+  @impl true
   def handle_event("update_per_page", %{"per_page" => value}, socket) do
     case Settings.update_setting("customer_support_per_page", value) do
       {:ok, _} ->
@@ -98,6 +108,10 @@ defmodule PhoenixKitCustomerSupport.Web.Settings do
       Settings.get_boolean_setting("customer_support_attachments_enabled", true)
     )
     |> assign(:allow_reopen, Settings.get_boolean_setting("customer_support_allow_reopen", true))
+    |> assign(
+      :allow_anonymous_requests,
+      Settings.get_boolean_setting("customer_support_allow_anonymous_requests", false)
+    )
     |> assign(:stats, PhoenixKitCustomerSupport.get_stats())
   end
 end

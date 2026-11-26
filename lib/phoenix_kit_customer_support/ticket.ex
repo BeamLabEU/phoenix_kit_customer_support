@@ -228,6 +228,8 @@ defmodule PhoenixKitCustomerSupport.Ticket do
     |> validate_format(:guest_email, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
     |> validate_inclusion(:status, @statuses)
     |> validate_length(:title, max: @column_widths.title)
+    # An anonymous visitor fills it: bounded like a comment.
+    |> validate_length(:description, max: 10_000)
     |> Slug.put_slug(:title, max_length: @column_widths.slug)
     |> validate_required([:slug])
     |> validate_length(:slug, max: @column_widths.slug)

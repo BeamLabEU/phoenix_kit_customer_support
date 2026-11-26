@@ -122,7 +122,10 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
         {:ok, :discarded}
 
       true ->
+        # Validated before the rate limit counts it: junk carrying someone's
+        # address must not use up that address's allowance.
         with :ok <- host_check(params, :request, peer_ip),
+             :ok <- validate_request(params),
              :ok <- RateLimit.check(:request, params["guest_email"], peer_ip) do
           create(params, Keyword.get_lazy(opts, :locale, &current_locale/0))
         end
@@ -133,6 +136,13 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
   @spec change_request(map()) :: Ecto.Changeset.t()
   def change_request(params \\ %{}) do
     Ticket.guest_changeset(%Ticket{}, Map.put(params, "status", "open"))
+  end
+
+  defp validate_request(params) do
+    case change_request(params) do
+      %Ecto.Changeset{valid?: true} -> :ok
+      changeset -> {:error, %{changeset | action: :insert}}
+    end
   end
 
   defp create(params, locale) do

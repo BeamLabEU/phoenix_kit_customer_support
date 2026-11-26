@@ -128,6 +128,31 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
       assert {:error, :rate_limited} = GuestRequests.submit(params)
     end
 
+    test "an invalid submission does not use up the address's allowance" do
+      Application.put_env(:phoenix_kit_customer_support, :guest_rate_limit, per_address: 1)
+      params = unique_params()
+
+      for _ <- 1..3 do
+        assert {:error, %Ecto.Changeset{}} = GuestRequests.submit(Map.put(params, "title", ""))
+      end
+
+      assert {:ok, %Ticket{}} = GuestRequests.submit(params)
+    end
+
+    test "the description is bounded" do
+      assert {:error, %Ecto.Changeset{} = cs} =
+               GuestRequests.submit(
+                 unique_params(%{"description" => String.duplicate("x", 10_001)})
+               )
+
+      assert cs.errors[:description]
+
+      assert {:ok, _} =
+               GuestRequests.submit(
+                 unique_params(%{"description" => String.duplicate("x", 10_000)})
+               )
+    end
+
     test "the rate limit counts per peer address" do
       Application.put_env(:phoenix_kit_customer_support, :guest_rate_limit, per_peer: 1)
       peer = {10, 0, 0, System.unique_integer([:positive]) |> rem(250)}

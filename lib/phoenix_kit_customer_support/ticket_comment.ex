@@ -137,6 +137,25 @@ defmodule PhoenixKitCustomerSupport.TicketComment do
   end
 
   @doc """
+  Changeset for a guest's reply on their own request: no `user_uuid` (the
+  author is the ticket's guest), always public, top-level.
+  """
+  def guest_changeset(comment, attrs) do
+    comment
+    |> cast(attrs, [:ticket_uuid, :content])
+    |> put_change(:user_uuid, nil)
+    |> put_change(:is_internal, false)
+    |> put_change(:depth, 0)
+    |> validate_required([:ticket_uuid, :content])
+    |> validate_length(:content, min: 1, max: 10_000)
+    |> foreign_key_constraint(:ticket_uuid)
+  end
+
+  @doc "Whether the comment was written by a ticket's guest (no user)."
+  def guest?(%__MODULE__{user_uuid: nil}), do: true
+  def guest?(_), do: false
+
+  @doc """
   Check if comment is an internal note.
   """
   def internal?(%__MODULE__{is_internal: true}), do: true

@@ -22,7 +22,7 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
   @schema_token "__SCHEMA__"
   @name_marker_exempt "__PK_NAME_EXEMPT__"
   @name_marker_always "__PK_NAME_ALWAYS__"
-  @chain_hash "506c11f9bea3e3f6455d759a65ccc05c91f0e6edf3cc8c01cb3a0b946ae615e2"
+  @chain_hash "3d315f3689af9b29f405cec20e5f389f4b356dadcadc21f106029619a6db6979"
 
   def objects(prefix) do
     prefix = normalize_prefix!(prefix)
@@ -365,7 +365,7 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
           "ALTER TABLE __SCHEMA__.phoenix_kit_ticket_comments ADD COLUMN IF NOT EXISTS \"user_uuid\" uuid",
         since: 1,
         class: :column,
-        revisions: [{1, %{default: nil, type: "uuid", pos: 9, not_null: true}}],
+        revisions: [{1, %{default: nil, type: "uuid", pos: 9, not_null: false}}],
         presence: :required,
         backfill: nil
       },
@@ -533,6 +533,49 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
         since: 1,
         class: :column,
         revisions: [{1, %{default: nil, type: "text", pos: 3, not_null: true}}],
+        presence: :required,
+        backfill: nil
+      },
+      %{
+        id: "column:phoenix_kit_tickets.guest_email",
+        owner: :phoenix_kit_customer_support,
+        check: {:catalog, %{table: "phoenix_kit_tickets", column: "guest_email", kind: :column}},
+        create:
+          "ALTER TABLE __SCHEMA__.phoenix_kit_tickets ADD COLUMN IF NOT EXISTS \"guest_email\" character varying(255)",
+        since: 1,
+        class: :column,
+        revisions: [
+          {1, %{default: nil, type: "character varying(255)", pos: 15, not_null: false}}
+        ],
+        presence: :required,
+        backfill: nil
+      },
+      %{
+        id: "column:phoenix_kit_tickets.guest_name",
+        owner: :phoenix_kit_customer_support,
+        check: {:catalog, %{table: "phoenix_kit_tickets", column: "guest_name", kind: :column}},
+        create:
+          "ALTER TABLE __SCHEMA__.phoenix_kit_tickets ADD COLUMN IF NOT EXISTS \"guest_name\" character varying(255)",
+        since: 1,
+        class: :column,
+        revisions: [
+          {1, %{default: nil, type: "character varying(255)", pos: 14, not_null: false}}
+        ],
+        presence: :required,
+        backfill: nil
+      },
+      %{
+        id: "column:phoenix_kit_tickets.guest_verified_at",
+        owner: :phoenix_kit_customer_support,
+        check:
+          {:catalog, %{table: "phoenix_kit_tickets", column: "guest_verified_at", kind: :column}},
+        create:
+          "ALTER TABLE __SCHEMA__.phoenix_kit_tickets ADD COLUMN IF NOT EXISTS \"guest_verified_at\" timestamp with time zone",
+        since: 1,
+        class: :column,
+        revisions: [
+          {1, %{default: nil, type: "timestamp with time zone", pos: 16, not_null: false}}
+        ],
         presence: :required,
         backfill: nil
       },
@@ -1157,6 +1200,37 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
         backfill: nil
       },
       %{
+        id: "index:phoenix_kit_tickets_guest_email_idx",
+        owner: :phoenix_kit_customer_support,
+        check:
+          {:catalog,
+           %{
+             name: "phoenix_kit_tickets_guest_email_idx",
+             table: "phoenix_kit_tickets",
+             kind: :index
+           }},
+        create:
+          "CREATE INDEX IF NOT EXISTS phoenix_kit_tickets_guest_email_idx ON __SCHEMA__.phoenix_kit_tickets USING btree (lower((guest_email)::text)) WHERE (guest_email IS NOT NULL)",
+        since: 1,
+        class: :index,
+        revisions: [
+          {1,
+           %{
+             table: "phoenix_kit_tickets",
+             keys: ["lower(guest_email::text)"],
+             unique: false,
+             method: "btree",
+             definition:
+               "CREATE INDEX phoenix_kit_tickets_guest_email_idx ON __SCHEMA__.phoenix_kit_tickets USING btree (lower((guest_email)::text)) WHERE (guest_email IS NOT NULL)",
+             predicate: "(guest_email IS NOT NULL)",
+             opclasses: ["text_ops"],
+             name_template: nil
+           }}
+        ],
+        presence: :required,
+        backfill: nil
+      },
+      %{
         id: "index:phoenix_kit_tickets_inserted_at_index",
         owner: :phoenix_kit_customer_support,
         check:
@@ -1323,12 +1397,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "c",
              columns: ["ticket_uuid", "comment_uuid"],
+             on_delete: nil,
              definition:
                "CHECK ((((ticket_uuid IS NOT NULL) AND (comment_uuid IS NULL)) OR ((ticket_uuid IS NULL) AND (comment_uuid IS NOT NULL))))",
              name_template: nil,
              foreign_table: nil,
              foreign_columns: nil,
-             on_delete: nil,
              on_update: nil
            }}
         ],
@@ -1354,11 +1428,11 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "p",
              columns: ["uuid"],
+             on_delete: nil,
              definition: "PRIMARY KEY (uuid)",
              name_template: nil,
              foreign_table: nil,
              foreign_columns: nil,
-             on_delete: nil,
              on_update: nil
            }}
         ],
@@ -1384,11 +1458,11 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "p",
              columns: ["uuid"],
+             on_delete: nil,
              definition: "PRIMARY KEY (uuid)",
              name_template: nil,
              foreign_table: nil,
              foreign_columns: nil,
-             on_delete: nil,
              on_update: nil
            }}
         ],
@@ -1414,11 +1488,11 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "p",
              columns: ["uuid"],
+             on_delete: nil,
              definition: "PRIMARY KEY (uuid)",
              name_template: nil,
              foreign_table: nil,
              foreign_columns: nil,
-             on_delete: nil,
              on_update: nil
            }}
         ],
@@ -1440,11 +1514,11 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "p",
              columns: ["uuid"],
+             on_delete: nil,
              definition: "PRIMARY KEY (uuid)",
              name_template: nil,
              foreign_table: nil,
              foreign_columns: nil,
-             on_delete: nil,
              on_update: nil
            }}
         ],
@@ -1471,12 +1545,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["comment_uuid"],
+             on_delete: "c",
              definition:
                "FOREIGN KEY (comment_uuid) REFERENCES __SCHEMA__.phoenix_kit_ticket_comments(uuid) ON DELETE CASCADE",
              name_template: nil,
              foreign_table: "phoenix_kit_ticket_comments",
              foreign_columns: ["uuid"],
-             on_delete: "c",
              on_update: "a"
            }}
         ],
@@ -1503,12 +1577,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["file_uuid"],
+             on_delete: "c",
              definition:
                "FOREIGN KEY (file_uuid) REFERENCES __SCHEMA__.phoenix_kit_files(uuid) ON DELETE CASCADE",
              name_template: nil,
              foreign_table: "phoenix_kit_files",
              foreign_columns: ["uuid"],
-             on_delete: "c",
              on_update: "a"
            }}
         ],
@@ -1535,12 +1609,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["ticket_uuid"],
+             on_delete: "c",
              definition:
                "FOREIGN KEY (ticket_uuid) REFERENCES __SCHEMA__.phoenix_kit_tickets(uuid) ON DELETE CASCADE",
              name_template: nil,
              foreign_table: "phoenix_kit_tickets",
              foreign_columns: ["uuid"],
-             on_delete: "c",
              on_update: "a"
            }}
         ],
@@ -1566,12 +1640,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["user_uuid"],
+             on_delete: "c",
              definition:
                "FOREIGN KEY (user_uuid) REFERENCES __SCHEMA__.phoenix_kit_users(uuid) ON DELETE CASCADE",
              name_template: nil,
              foreign_table: "phoenix_kit_users",
              foreign_columns: ["uuid"],
-             on_delete: "c",
              on_update: "a"
            }}
         ],
@@ -1597,12 +1671,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["parent_uuid"],
+             on_delete: "c",
              definition:
                "FOREIGN KEY (parent_uuid) REFERENCES __SCHEMA__.phoenix_kit_ticket_comments(uuid) ON DELETE CASCADE",
              name_template: nil,
              foreign_table: "phoenix_kit_ticket_comments",
              foreign_columns: ["uuid"],
-             on_delete: "c",
              on_update: "a"
            }}
         ],
@@ -1628,12 +1702,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["ticket_uuid"],
+             on_delete: "c",
              definition:
                "FOREIGN KEY (ticket_uuid) REFERENCES __SCHEMA__.phoenix_kit_tickets(uuid) ON DELETE CASCADE",
              name_template: nil,
              foreign_table: "phoenix_kit_tickets",
              foreign_columns: ["uuid"],
-             on_delete: "c",
              on_update: "a"
            }}
         ],
@@ -1660,12 +1734,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["changed_by_uuid"],
+             on_delete: "n",
              definition:
                "FOREIGN KEY (changed_by_uuid) REFERENCES __SCHEMA__.phoenix_kit_users(uuid) ON DELETE SET NULL",
              name_template: nil,
              foreign_table: "phoenix_kit_users",
              foreign_columns: ["uuid"],
-             on_delete: "n",
              on_update: "a"
            }}
         ],
@@ -1692,12 +1766,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["ticket_uuid"],
+             on_delete: "c",
              definition:
                "FOREIGN KEY (ticket_uuid) REFERENCES __SCHEMA__.phoenix_kit_tickets(uuid) ON DELETE CASCADE",
              name_template: nil,
              foreign_table: "phoenix_kit_tickets",
              foreign_columns: ["uuid"],
-             on_delete: "c",
              on_update: "a"
            }}
         ],
@@ -1719,12 +1793,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["assigned_to_uuid"],
+             on_delete: "n",
              definition:
                "FOREIGN KEY (assigned_to_uuid) REFERENCES __SCHEMA__.phoenix_kit_users(uuid) ON DELETE SET NULL",
              name_template: nil,
              foreign_table: "phoenix_kit_users",
              foreign_columns: ["uuid"],
-             on_delete: "n",
              on_update: "a"
            }}
         ],
@@ -1746,12 +1820,12 @@ defmodule PhoenixKitCustomerSupport.ExpectedSchema do
            %{
              type: "f",
              columns: ["user_uuid"],
+             on_delete: "n",
              definition:
                "FOREIGN KEY (user_uuid) REFERENCES __SCHEMA__.phoenix_kit_users(uuid) ON DELETE SET NULL",
              name_template: nil,
              foreign_table: "phoenix_kit_users",
              foreign_columns: ["uuid"],
-             on_delete: "n",
              on_update: "a"
            }}
         ],

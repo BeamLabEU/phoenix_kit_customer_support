@@ -86,7 +86,9 @@ defmodule PhoenixKitCustomerSupport.Ticket do
   @column_widths %{
     title: 255,
     status: 255,
-    slug: 255
+    slug: 255,
+    guest_name: 255,
+    guest_email: 255
   }
 
   @type t :: %__MODULE__{
@@ -101,6 +103,9 @@ defmodule PhoenixKitCustomerSupport.Ticket do
           metadata: map(),
           resolved_at: DateTime.t() | nil,
           closed_at: DateTime.t() | nil,
+          guest_name: String.t() | nil,
+          guest_email: String.t() | nil,
+          guest_verified_at: DateTime.t() | nil,
           user: PhoenixKit.Users.Auth.User.t() | Ecto.Association.NotLoaded.t(),
           assigned_to: PhoenixKit.Users.Auth.User.t() | Ecto.Association.NotLoaded.t() | nil,
           comments:
@@ -125,6 +130,14 @@ defmodule PhoenixKitCustomerSupport.Ticket do
     field :metadata, :map, default: %{}
     field :resolved_at, :utc_datetime
     field :closed_at, :utc_datetime
+
+    # Anonymous (guest) requests, V2: `user_uuid` is nil and the requester
+    # is identified by name + email. `guest_verified_at` is set the first
+    # time the emailed link is opened; until then the ticket is hidden from
+    # staff lists (`PhoenixKitCustomerSupport.GuestRequests`).
+    field :guest_name, :string
+    field :guest_email, :string
+    field :guest_verified_at, :utc_datetime
 
     belongs_to :user, PhoenixKit.Users.Auth.User,
       foreign_key: :user_uuid,
@@ -198,6 +211,32 @@ defmodule PhoenixKitCustomerSupport.Ticket do
     |> foreign_key_constraint(:assigned_to_uuid)
     |> unique_constraint(:slug)
   end
+
+  @doc """
+  Changeset for an anonymous (guest) request: no `user_uuid`, a required
+  `guest_name` and a valid `guest_email` (trimmed, lower-cased). Title,
+  description, status and slug follow `changeset/2`'s rules.
+  """
+  def guest_changeset(ticket, attrs) do
+    ticket
+    |> cast(attrs, [:guest_name, :guest_email, :title, :description, :status, :slug, :metadata])
+    |> update_change(:guest_name, &String.trim/1)
+    |> update_change(:guest_email, &(&1 |> String.trim() |> String.downcase()))
+    |> validate_required([:guest_name, :guest_email, :title, :description, :status])
+    |> validate_length(:guest_name, max: @column_widths.guest_name)
+    |> validate_length(:guest_email, max: @column_widths.guest_email)
+    |> validate_format(:guest_email, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+    |> validate_inclusion(:status, @statuses)
+    |> validate_length(:title, max: @column_widths.title)
+    |> Slug.put_slug(:title, max_length: @column_widths.slug)
+    |> validate_required([:slug])
+    |> validate_length(:slug, max: @column_widths.slug)
+    |> unique_constraint(:slug)
+  end
+
+  @doc "Whether the ticket was filed by a guest (no account)."
+  def guest?(%__MODULE__{user_uuid: nil, guest_email: email}) when is_binary(email), do: true
+  def guest?(_), do: false
 
   @doc """
   Returns list of valid statuses.

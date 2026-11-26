@@ -126,7 +126,7 @@ defmodule PhoenixKitCustomerSupport.Events do
   """
   def broadcast_ticket_created(ticket) do
     broadcast(@all_topic, {:ticket_created, ticket})
-    broadcast(user_topic(ticket.user_uuid), {:ticket_created, ticket})
+    broadcast_user(ticket.user_uuid, {:ticket_created, ticket})
     broadcast(ticket_topic(ticket.uuid), {:ticket_created, ticket})
   end
 
@@ -135,7 +135,7 @@ defmodule PhoenixKitCustomerSupport.Events do
   """
   def broadcast_ticket_updated(ticket) do
     broadcast(@all_topic, {:ticket_updated, ticket})
-    broadcast(user_topic(ticket.user_uuid), {:ticket_updated, ticket})
+    broadcast_user(ticket.user_uuid, {:ticket_updated, ticket})
     broadcast(ticket_topic(ticket.uuid), {:ticket_updated, ticket})
   end
 
@@ -145,7 +145,7 @@ defmodule PhoenixKitCustomerSupport.Events do
   def broadcast_ticket_status_changed(ticket, old_status, new_status) do
     message = {:ticket_status_changed, ticket, old_status, new_status}
     broadcast(@all_topic, message)
-    broadcast(user_topic(ticket.user_uuid), message)
+    broadcast_user(ticket.user_uuid, message)
     broadcast(ticket_topic(ticket.uuid), message)
   end
 
@@ -155,7 +155,7 @@ defmodule PhoenixKitCustomerSupport.Events do
   def broadcast_ticket_assigned(ticket, old_assignee_uuid, new_assignee_uuid) do
     message = {:ticket_assigned, ticket, old_assignee_uuid, new_assignee_uuid}
     broadcast(@all_topic, message)
-    broadcast(user_topic(ticket.user_uuid), message)
+    broadcast_user(ticket.user_uuid, message)
     broadcast(ticket_topic(ticket.uuid), message)
 
     # Also broadcast to the new assignee's topic if assigned
@@ -170,7 +170,7 @@ defmodule PhoenixKitCustomerSupport.Events do
   def broadcast_ticket_priority_changed(ticket, old_priority, new_priority) do
     message = {:ticket_priority_changed, ticket, old_priority, new_priority}
     broadcast(@all_topic, message)
-    broadcast(user_topic(ticket.user_uuid), message)
+    broadcast_user(ticket.user_uuid, message)
     broadcast(ticket_topic(ticket.uuid), message)
   end
 
@@ -185,7 +185,7 @@ defmodule PhoenixKitCustomerSupport.Events do
     |> Enum.map(& &1.user_uuid)
     |> Enum.uniq()
     |> Enum.each(fn user_uuid ->
-      broadcast(user_topic(user_uuid), {:tickets_bulk_updated, tickets, changes})
+      broadcast_user(user_uuid, {:tickets_bulk_updated, tickets, changes})
     end)
   end
 
@@ -199,7 +199,7 @@ defmodule PhoenixKitCustomerSupport.Events do
   def broadcast_comment_created(comment, ticket) do
     message = {:comment_created, comment, ticket}
     broadcast(@all_topic, message)
-    broadcast(user_topic(ticket.user_uuid), message)
+    broadcast_user(ticket.user_uuid, message)
     broadcast(ticket_topic(ticket.uuid), message)
   end
 
@@ -217,6 +217,11 @@ defmodule PhoenixKitCustomerSupport.Events do
   # ============================================================================
   # PRIVATE HELPERS
   # ============================================================================
+
+  # A ticket without a user (a guest request, or one whose user was
+  # deleted) has no personal topic to broadcast to.
+  defp broadcast_user(nil, _message), do: :ok
+  defp broadcast_user(user_uuid, message), do: broadcast(user_topic(user_uuid), message)
 
   defp broadcast(topic, message) do
     Manager.broadcast(topic, message)

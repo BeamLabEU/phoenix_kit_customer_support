@@ -7,11 +7,11 @@ defmodule PhoenixKitCustomerSupport.RateLimit do
   against the email address and against the peer address, per hour, on
   core's rate limiter (`PhoenixKit.Users.RateLimiter.Backend`).
 
-  The peer comes from LiveView's `:peer_data`, so it needs
-  `connect_info: [:peer_data, session: ...]` on the host's socket; without
-  it only the address bucket applies. Behind a proxy the host resolves the
-  real address before Phoenix (`RemoteIp`): forwarded headers are never read
-  here. A limiter that is not running allows the attempt (and logs).
+  The peer is core's `PhoenixKit.Utils.IpAddress.client_address_from_socket/1`
+  (`:peer_data`, and behind a trusted proxy its forwarded header from
+  `:x_headers`), so it needs `connect_info: [:peer_data, :x_headers,
+  session: ...]` on the host's socket; without it only the address bucket
+  applies. A limiter that is not running allows the attempt (and logs).
 
   Limits, per hour:
 
@@ -31,7 +31,7 @@ defmodule PhoenixKitCustomerSupport.RateLimit do
   Counts one attempt of `action` (`:request`, `:reply`, `:resend`).
   `:ok`, or `{:error, :rate_limited}` once a bucket is over its limit.
   """
-  @spec check(atom(), String.t() | nil, :inet.ip_address() | nil) ::
+  @spec check(atom(), String.t() | nil, String.t() | :inet.ip_address() | nil) ::
           :ok | {:error, :rate_limited}
   def check(action, email, peer_ip) do
     limits = Keyword.merge(@defaults, configured_limits())
@@ -64,12 +64,18 @@ defmodule PhoenixKitCustomerSupport.RateLimit do
 
   defp address_bucket(_action, _email, _limits), do: nil
 
-  defp peer_bucket(_action, nil, _limits), do: nil
+  defp peer_bucket(action, ip, limits) do
+    case ip_bucket(ip) do
+      nil -> nil
+      network -> {"customer_support:#{action}:peer:#{network}", limits[:per_peer]}
+    end
+  end
 
-  defp peer_bucket(action, ip, limits),
-    do: {"customer_support:#{action}:peer:#{ip_bucket(ip)}", limits[:per_peer]}
-
-  # IPv6 by its /64: one subscriber holds a whole prefix.
-  defp ip_bucket({a, b, c, d, _, _, _, _}), do: Enum.join([a, b, c, d], ":") <> "::/64"
-  defp ip_bucket(ip), do: ip |> :inet.ntoa() |> to_string()
+  # Core's notion of a visitor's network (`IpAddress.network/1`): an IPv4
+  # address (also when it arrives IPv4-mapped on an IPv6 listener) is its
+  # own bucket, an IPv6 address its /64.
+  defp ip_bucket(nil), do: nil
+  defp ip_bucket(ip) when is_tuple(ip), do: ip |> :inet.ntoa() |> to_string() |> ip_bucket()
+  defp ip_bucket(ip) when is_binary(ip), do: PhoenixKit.Utils.IpAddress.network(ip)
+  defp ip_bucket(_), do: nil
 end

@@ -21,11 +21,11 @@ defmodule PhoenixKitCustomerSupport.Web.GuestLocale do
   @doc false
   # The visitor's address for `RateLimit`. `get_connect_info/2` answers only
   # during `mount/3`, so each page reads it there and keeps it in `:peer_ip`.
+  # Core's resolution: the peer, or behind a trusted proxy the forwarded
+  # client — never the proxy itself, which would put every visitor in one
+  # bucket.
   def peer_ip(socket) do
-    case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
-      %{address: address} -> address
-      _ -> nil
-    end
+    PhoenixKit.Utils.IpAddress.client_address_from_socket(socket)
   rescue
     _ -> nil
   end

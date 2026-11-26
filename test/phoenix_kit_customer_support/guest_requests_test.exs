@@ -136,6 +136,27 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
       assert {:error, :rate_limited} = GuestRequests.submit(unique_params(), peer_ip: peer)
     end
 
+    test "the peer bucket is the visitor's network: IPv4-mapped IPv6 is its IPv4, IPv6 its /64" do
+      Application.put_env(:phoenix_kit_customer_support, :guest_rate_limit, per_peer: 1)
+      n = System.unique_integer([:positive]) |> rem(250)
+
+      assert {:ok, _} = GuestRequests.submit(unique_params(), peer_ip: {10, 1, 2, n})
+
+      assert {:error, :rate_limited} =
+               GuestRequests.submit(unique_params(),
+                 peer_ip: {0, 0, 0, 0, 0, 65_535, 2561, 512 + n}
+               )
+
+      # Two IPv4-mapped clients of one listener are different visitors.
+      assert {:ok, _} =
+               GuestRequests.submit(unique_params(), peer_ip: {0, 0, 0, 0, 0, 65_535, 2562, n})
+
+      assert {:ok, _} = GuestRequests.submit(unique_params(), peer_ip: "2001:db8:#{n}::1")
+
+      assert {:error, :rate_limited} =
+               GuestRequests.submit(unique_params(), peer_ip: "2001:db8:#{n}::ffff")
+    end
+
     test "the host check (captcha hook) can refuse, and a crashing hook refuses" do
       Application.put_env(
         :phoenix_kit_customer_support,

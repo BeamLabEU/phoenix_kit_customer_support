@@ -250,13 +250,19 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
   """
   @spec reply(Ticket.t(), map(), keyword()) ::
           {:ok, TicketComment.t()}
-          | {:error, :disabled | :closed | :rate_limited | :rejected | Ecto.Changeset.t()}
+          | {:error,
+             :disabled | :invalid | :closed | :rate_limited | :rejected | Ecto.Changeset.t()}
   def reply(%Ticket{} = ticket, params, opts \\ []) do
     peer_ip = Keyword.get(opts, :peer_ip)
 
     cond do
       not enabled?() ->
         {:error, :disabled}
+
+      # No longer a guest's (moved to an account): the link no longer
+      # speaks for it, even on a page opened before the move.
+      not Ticket.guest?(ticket) ->
+        {:error, :invalid}
 
       not Ticket.can_comment?(ticket) ->
         {:error, :closed}

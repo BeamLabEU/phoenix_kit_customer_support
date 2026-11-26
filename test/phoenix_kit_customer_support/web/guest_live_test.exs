@@ -82,6 +82,30 @@ defmodule PhoenixKitCustomerSupport.Web.GuestLiveTest do
     assert has_element?(view, "#guest-ticket-comments", "Thanks!")
   end
 
+  test "an open page stops showing the ticket once it moves to an account", %{conn: conn} do
+    enable()
+    ticket = guest_ticket()
+    {:ok, view, _html} = live(conn, "/support/requests/#{GuestRequests.access_token(ticket)}")
+    assert has_element?(view, "#guest-ticket")
+
+    n = System.unique_integer([:positive])
+
+    user =
+      Repo.insert!(%PhoenixKit.Users.Auth.User{
+        email: "owner#{n}@example.com",
+        username: "owner_#{n}",
+        hashed_password: "$2b$12$notarealhashjustenoughtosatisfythecolumn",
+        is_active: true
+      })
+
+    moved = ticket |> Ecto.Changeset.change(user_uuid: user.uuid) |> Repo.update!()
+    assert {:error, :invalid} = GuestRequests.reply(moved, %{"content" => "still here?"})
+
+    send(view.pid, {:ticket_updated, moved})
+    assert has_element?(view, "#guest-ticket-link-error")
+    refute has_element?(view, "#guest-ticket")
+  end
+
   test "a bad link shows a notice", %{conn: conn} do
     enable()
     {:ok, view, _html} = live(conn, "/support/requests/garbage")

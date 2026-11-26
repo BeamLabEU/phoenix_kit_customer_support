@@ -81,9 +81,16 @@ defmodule PhoenixKitCustomerSupport.Web.GuestTicket do
   # Any change on the ticket (a staff reply, a status change) reloads it.
   @impl true
   def handle_info(_event, %{assigns: %{ticket: %Ticket{uuid: uuid}}} = socket) do
+    # Same rule as opening the link: a ticket that is gone or no longer a
+    # guest's (moved to an account) is not shown through it any more.
     case PhoenixKitCustomerSupport.get_ticket(uuid) do
-      %Ticket{} = ticket -> {:noreply, load(socket, ticket)}
-      nil -> {:noreply, assign(socket, ticket: nil, link_error: :invalid)}
+      %Ticket{} = ticket ->
+        if Ticket.guest?(ticket),
+          do: {:noreply, load(socket, ticket)},
+          else: {:noreply, assign(socket, ticket: nil, comments: [], link_error: :invalid)}
+
+      nil ->
+        {:noreply, assign(socket, ticket: nil, comments: [], link_error: :invalid)}
     end
   end
 

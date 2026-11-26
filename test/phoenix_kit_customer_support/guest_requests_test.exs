@@ -193,6 +193,24 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
     :ok
   end
 
+  describe "verify/1" do
+    setup do: enable()
+
+    test "announces the ticket once, with the associations the staff list reads" do
+      {:ok, ticket} = GuestRequests.submit(unique_params())
+      PhoenixKitCustomerSupport.Events.subscribe_to_all()
+
+      assert {:ok, verified} = GuestRequests.verify(ticket)
+      assert verified.guest_verified_at
+      assert_receive {:ticket_created, announced}
+      assert announced.user == nil
+      assert announced.assigned_to == nil
+
+      assert {:ok, _} = GuestRequests.verify(ticket)
+      refute_receive {:ticket_created, _}
+    end
+  end
+
   describe "links" do
     setup do: enable()
 

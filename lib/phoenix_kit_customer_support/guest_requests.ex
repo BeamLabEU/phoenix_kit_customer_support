@@ -227,7 +227,13 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
       from(t in Ticket, where: t.uuid == ^ticket.uuid and is_nil(t.guest_verified_at))
       |> repo().update_all(set: [guest_verified_at: now])
 
-    verified = repo().get(Ticket, ticket.uuid)
+    # Preloaded like the staff list's own rows: the List page prepends the
+    # broadcast ticket and reads `ticket.user` / `ticket.assigned_to`.
+    verified =
+      case repo().get(Ticket, ticket.uuid) do
+        nil -> nil
+        found -> repo().preload(found, [:user, :assigned_to])
+      end
 
     # Only the request that flipped it announces it.
     if count == 1 and verified, do: Events.broadcast_ticket_created(verified)

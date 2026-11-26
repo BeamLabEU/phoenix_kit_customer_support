@@ -47,6 +47,16 @@ defmodule PhoenixKitCustomerSupport.Web.RoutesTest do
     end
   end
 
+  test "the live session carries core's CSP nonces when core has them" do
+    %{phoenix_live_view: {_, _, _, %{extra: extra}}} = route("/phoenix_kit/support/request")
+
+    if Code.ensure_loaded?(PhoenixKitWeb.CSP) do
+      assert extra[:session] == {PhoenixKitWeb.CSP, :live_session, []}
+    else
+      refute extra[:session]
+    end
+  end
+
   test "nothing else is routed (no catch-all)" do
     assert route("/phoenix_kit/admin/customer-support") == :error
     assert route("/phoenix_kit/support") == :error

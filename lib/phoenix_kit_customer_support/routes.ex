@@ -17,14 +17,16 @@ defmodule PhoenixKitCustomerSupport.Routes do
   @doc false
   def generate(url_prefix) do
     extra_on_mount = Application.get_env(:phoenix_kit, :extra_live_session_on_mount, [])
+    session = csp_session()
 
     quote do
       live_session :phoenix_kit_customer_support_public,
-        on_mount:
-          unquote(
-            extra_on_mount ++
-              [{PhoenixKitWeb.Users.Auth, :phoenix_kit_mount_current_scope}]
-          ) do
+                   unquote_splicing(session),
+                   on_mount:
+                     unquote(
+                       extra_on_mount ++
+                         [{PhoenixKitWeb.Users.Auth, :phoenix_kit_mount_current_scope}]
+                     ) do
         scope unquote(localized_scope(url_prefix)) do
           pipe_through([:browser, :phoenix_kit_auto_setup, :phoenix_kit_locale_validation])
           unquote(public_live_routes())
@@ -36,6 +38,19 @@ defmodule PhoenixKitCustomerSupport.Routes do
         end
       end
     end
+  end
+
+  @doc false
+  # The page's CSP nonces in the LiveView session, as core's own live
+  # sessions carry them (`PhoenixKitWeb.CSP.live_session/1`; the views'
+  # `on_mount` restores them), so a `<style>` patched in after the socket
+  # connects still gets the nonce. Feature-detected: a core release without
+  # `PhoenixKitWeb.CSP` gets no `session:` and nothing else changes.
+  def csp_session do
+    if Code.ensure_loaded?(PhoenixKitWeb.CSP) and
+         function_exported?(PhoenixKitWeb.CSP, :live_session, 1),
+       do: [session: {PhoenixKitWeb.CSP, :live_session, []}],
+       else: []
   end
 
   @doc false

@@ -16,13 +16,19 @@ defmodule PhoenixKitCustomerSupport.GuestNotifier do
 
   alias PhoenixKitCustomerSupport.Ticket
 
-  @doc "Sent right after filing: confirms the request and verifies the address."
+  @doc """
+  Sent right after filing: confirms the request and verifies the address.
+
+  The address is not verified yet, so whoever filled the form may not own
+  it: the mail carries none of their text (no title, no name), so the form
+  cannot be used to send a stranger a message from this site.
+  """
   def request_received(%Ticket{} = ticket, url) do
     with_locale(ticket, fn ->
       deliver(
         ticket.guest_email,
-        gettext("Your support request: %{title}", title: ticket.title),
-        greeting(ticket) <>
+        gettext("Confirm your support request"),
+        gettext("Hello,") <>
           "\n\n" <>
           gettext(
             "We received your request. Open the link below to confirm your email address, follow the request and reply to it:"
@@ -56,7 +62,7 @@ defmodule PhoenixKitCustomerSupport.GuestNotifier do
     with_locale(first, fn ->
       lines =
         Enum.map_join(tickets_with_urls, "\n\n", fn {ticket, url} ->
-          ticket.title <> "\n" <> url
+          link_label(ticket) <> "\n" <> url
         end)
 
       deliver(
@@ -71,6 +77,10 @@ defmodule PhoenixKitCustomerSupport.GuestNotifier do
       )
     end)
   end
+
+  # An unconfirmed request's title is text a stranger may have typed.
+  defp link_label(%Ticket{guest_verified_at: %DateTime{}, title: title}), do: title
+  defp link_label(_ticket), do: gettext("Unconfirmed request")
 
   defp greeting(%Ticket{guest_name: name}) when is_binary(name) and name != "",
     do: gettext("Hello %{name},", name: name)

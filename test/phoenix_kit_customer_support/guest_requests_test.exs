@@ -82,6 +82,10 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
       assert_email_sent(fn email ->
         assert [{_, "mari@example.com"}] = email.to
         assert email.text_body =~ "/support/requests/"
+        # Unverified: none of the form's text reaches the address.
+        refute email.subject =~ "Cannot find my order"
+        refute email.text_body =~ "Cannot find my order"
+        refute email.text_body =~ "Mari Maasikas"
         true
       end)
     end
@@ -359,6 +363,24 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
 
       assert :ok = GuestRequests.resend_links("nobody-#{System.unique_integer()}@example.com")
       assert_no_email_sent()
+    end
+
+    test "an unconfirmed request's title is not mailed; a confirmed one's is" do
+      params = unique_params(%{"title" => "Visit evil.example now"})
+      {:ok, ticket} = GuestRequests.submit(params)
+      assert_email_sent()
+
+      assert :ok = GuestRequests.resend_links(params["guest_email"])
+
+      assert_email_sent(fn email ->
+        refute email.text_body =~ "evil.example"
+        assert email.text_body =~ "Unconfirmed request"
+        true
+      end)
+
+      {:ok, _} = GuestRequests.verify(ticket)
+      assert :ok = GuestRequests.resend_links(params["guest_email"])
+      assert_email_sent(fn email -> email.text_body =~ "Visit evil.example now" end)
     end
   end
 end

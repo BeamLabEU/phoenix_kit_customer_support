@@ -322,8 +322,8 @@ msgstr "Ваше обращение"
 
 #: lib/phoenix_kit_customer_support/guest_notifier.ex:24
 #, elixir-autogen, elixir-format
-msgid "Your support request: %{title}"
-msgstr "Ваше обращение: %{title}"
+msgid "Confirm your support request"
+msgstr "Подтвердите своё обращение"
 
 #: lib/phoenix_kit_customer_support/web/guest_labels.ex:9
 #, elixir-autogen, elixir-format
@@ -334,3 +334,7 @@ msgstr "e-mail подтверждён"
 #, elixir-autogen, elixir-format
 msgid "email not confirmed"
 msgstr "e-mail не подтверждён"
+
+#, elixir-autogen, elixir-format
+msgid "Unconfirmed request"
+msgstr "Неподтверждённое обращение"

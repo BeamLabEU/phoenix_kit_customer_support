@@ -296,6 +296,14 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
       assert {:error, :closed} = GuestRequests.reply(closed, %{"content" => "hello"})
     end
 
+    test "an unverified request moved to an account is listed like an account ticket" do
+      {:ok, ticket} = GuestRequests.submit(unique_params())
+      user = staff_user()
+      {:ok, _} = PhoenixKitCustomerSupport.update_ticket(ticket, %{user_uuid: user.uuid})
+
+      assert ticket.uuid in Enum.map(PhoenixKitCustomerSupport.list_tickets(), & &1.uuid)
+    end
+
     test "staff can move a guest request through its statuses and assign it" do
       {:ok, ticket} = GuestRequests.submit(unique_params())
       staff = staff_user()

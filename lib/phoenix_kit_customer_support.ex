@@ -1085,7 +1085,13 @@ defmodule PhoenixKitCustomerSupport do
   # opened the emailed link (`GuestRequests.verify/1`): an open guest form
   # otherwise lets anyone fill the queue with unverifiable addresses.
   def exclude_unverified_guests(query) do
-    where(query, [t], is_nil(t.guest_email) or not is_nil(t.guest_verified_at))
+    # Only a ticket that is still a guest's: one moved to an account
+    # (`user_uuid` set) shows like any account ticket.
+    where(
+      query,
+      [t],
+      not is_nil(t.user_uuid) or is_nil(t.guest_email) or not is_nil(t.guest_verified_at)
+    )
   end
 
   defp maybe_filter_by_user(query, nil), do: query

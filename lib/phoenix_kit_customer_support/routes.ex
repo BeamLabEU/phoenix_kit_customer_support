@@ -17,16 +17,18 @@ defmodule PhoenixKitCustomerSupport.Routes do
   @doc false
   def generate(url_prefix) do
     extra_on_mount = Application.get_env(:phoenix_kit, :extra_live_session_on_mount, [])
-    session = csp_session()
+
+    # One keyword list, escaped whole: live_session/3 takes its options as a
+    # single argument (a splice would make them extra arguments).
+    opts =
+      csp_session() ++
+        [
+          on_mount:
+            extra_on_mount ++ [{PhoenixKitWeb.Users.Auth, :phoenix_kit_mount_current_scope}]
+        ]
 
     quote do
-      live_session :phoenix_kit_customer_support_public,
-                   unquote_splicing(session),
-                   on_mount:
-                     unquote(
-                       extra_on_mount ++
-                         [{PhoenixKitWeb.Users.Auth, :phoenix_kit_mount_current_scope}]
-                     ) do
+      live_session :phoenix_kit_customer_support_public, unquote(Macro.escape(opts)) do
         scope unquote(localized_scope(url_prefix)) do
           pipe_through([:browser, :phoenix_kit_auto_setup, :phoenix_kit_locale_validation])
           unquote(public_live_routes())

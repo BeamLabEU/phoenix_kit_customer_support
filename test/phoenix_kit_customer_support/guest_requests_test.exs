@@ -249,6 +249,28 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
       assert {:error, :closed} = GuestRequests.reply(closed, %{"content" => "hello"})
     end
 
+    test "staff can move a guest request through its statuses and assign it" do
+      {:ok, ticket} = GuestRequests.submit(unique_params())
+      staff = staff_user()
+
+      assert {:ok, ticket} = PhoenixKitCustomerSupport.start_progress(ticket, staff)
+      assert ticket.status == "in_progress"
+      assert {:ok, ticket} = PhoenixKitCustomerSupport.assign_ticket(ticket, staff.uuid, staff)
+      assert ticket.assigned_to_uuid == staff.uuid
+      assert {:ok, ticket} = PhoenixKitCustomerSupport.resolve_ticket(ticket, staff)
+      assert {:ok, ticket} = PhoenixKitCustomerSupport.close_ticket(ticket, staff)
+      assert ticket.status == "closed"
+      assert {:error, :closed} = GuestRequests.reply(ticket, %{"content" => "hello"})
+    end
+
+    test "an account ticket still requires its user" do
+      refute Ticket.changeset(%Ticket{}, %{
+               "title" => "t",
+               "description" => "d",
+               "status" => "open"
+             }).valid?
+    end
+
     test "internal notes never reach the guest's comment list" do
       {:ok, ticket} = GuestRequests.submit(unique_params())
       staff = staff_user()

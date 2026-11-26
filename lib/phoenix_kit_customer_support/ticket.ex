@@ -197,7 +197,7 @@ defmodule PhoenixKitCustomerSupport.Ticket do
       :resolved_at,
       :closed_at
     ])
-    |> validate_required([:user_uuid, :title, :description, :status])
+    |> validate_required(required_fields(ticket))
     |> validate_inclusion(:status, @statuses)
     |> validate_length(:title, max: @column_widths.title)
     # Keep an existing slug (status/title edits must not move the URL);
@@ -232,6 +232,14 @@ defmodule PhoenixKitCustomerSupport.Ticket do
     |> validate_required([:slug])
     |> validate_length(:slug, max: @column_widths.slug)
     |> unique_constraint(:slug)
+  end
+
+  # A guest request has no user, and staff edits (status, assignment, title)
+  # still go through `changeset/2`: only an account ticket requires one.
+  defp required_fields(ticket) do
+    if guest?(ticket),
+      do: [:title, :description, :status],
+      else: [:user_uuid, :title, :description, :status]
   end
 
   @doc "Whether the ticket was filed by a guest (no account)."

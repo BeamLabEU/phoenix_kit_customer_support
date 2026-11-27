@@ -463,7 +463,20 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
   end
 
   defp email_tag_key do
-    token_endpoint().config(:secret_key_base)
+    endpoint = token_endpoint()
+
+    case endpoint.config(:secret_key_base) do
+      secret when is_binary(secret) and secret != "" ->
+        email_tag_key(secret)
+
+      _ ->
+        raise ArgumentError,
+              "#{inspect(endpoint)} has no :secret_key_base; guest links cannot be signed"
+    end
+  end
+
+  defp email_tag_key(secret) do
+    secret
     |> KeyGenerator.generate(@email_tag_salt, length: 32, cache: Plug.Crypto.Keys)
   end
 

@@ -251,8 +251,8 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
           "description" => "d"
         })
 
-      assert_receive {:ticket_created, %Ticket{uuid: uuid} = announced}
-      assert uuid == ticket.uuid
+      ticket_uuid = ticket.uuid
+      assert_receive {:ticket_created, %Ticket{uuid: ^ticket_uuid} = announced}
       assert announced.user.uuid == user.uuid
       assert announced.assigned_to == nil
     end

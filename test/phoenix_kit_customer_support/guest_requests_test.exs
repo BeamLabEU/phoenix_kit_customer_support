@@ -240,6 +240,24 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
     end
   end
 
+  describe "create_ticket/2 broadcast" do
+    test "announces the ticket with the associations the staff list reads" do
+      user = staff_user()
+      PhoenixKitCustomerSupport.Events.subscribe_to_all()
+
+      {:ok, ticket} =
+        PhoenixKitCustomerSupport.create_ticket(user.uuid, %{
+          "title" => "Account ticket",
+          "description" => "d"
+        })
+
+      assert_receive {:ticket_created, %Ticket{uuid: uuid} = announced}
+      assert uuid == ticket.uuid
+      assert announced.user.uuid == user.uuid
+      assert announced.assigned_to == nil
+    end
+  end
+
   describe "links" do
     setup do: enable()
 

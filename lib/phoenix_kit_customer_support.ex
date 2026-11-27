@@ -339,7 +339,9 @@ defmodule PhoenixKitCustomerSupport do
            |> repo().insert() do
         {:ok, ticket} ->
           create_status_history(ticket.uuid, user_uuid, nil, "open", nil)
-          Events.broadcast_ticket_created(ticket)
+          # Preloaded like the staff list's rows: the List page prepends the
+          # broadcast ticket and reads `ticket.user` / `ticket.assigned_to`.
+          Events.broadcast_ticket_created(repo().preload(ticket, [:user, :assigned_to]))
           ticket
 
         {:error, changeset} ->

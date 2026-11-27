@@ -23,6 +23,7 @@ defmodule PhoenixKitCustomerSupport.RateLimit do
   require Logger
 
   alias PhoenixKit.Users.RateLimiter.Backend, as: Limiter
+  alias PhoenixKit.Utils.IpAddress
 
   @hour_ms 60 * 60 * 1000
   @defaults [per_address: 5, per_peer: 20]
@@ -76,6 +77,6 @@ defmodule PhoenixKitCustomerSupport.RateLimit do
   # own bucket, an IPv6 address its /64.
   defp ip_bucket(nil), do: nil
   defp ip_bucket(ip) when is_tuple(ip), do: ip |> :inet.ntoa() |> to_string() |> ip_bucket()
-  defp ip_bucket(ip) when is_binary(ip), do: PhoenixKit.Utils.IpAddress.network(ip)
+  defp ip_bucket(ip) when is_binary(ip), do: IpAddress.network(ip)
   defp ip_bucket(_), do: nil
 end

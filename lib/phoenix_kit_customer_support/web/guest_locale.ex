@@ -4,6 +4,8 @@ defmodule PhoenixKitCustomerSupport.Web.GuestLocale do
   # sets its own backend's locale for the request; mirror it (base language:
   # `et-EE` → `et`) so these pages follow the visitor's language.
 
+  alias PhoenixKit.Utils.IpAddress
+
   def apply do
     case Gettext.get_locale(PhoenixKitWeb.Gettext) do
       locale when is_binary(locale) and locale != "" ->
@@ -28,7 +30,7 @@ defmodule PhoenixKitCustomerSupport.Web.GuestLocale do
   # A proxy peer without `:x_headers` in connect_info resolves to nil there;
   # the raw peer is then the bucket (one shared bucket beats no per-IP limit).
   def peer_ip(socket) do
-    PhoenixKit.Utils.IpAddress.client_address_from_socket(socket) ||
+    IpAddress.client_address_from_socket(socket) ||
       case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
         %{address: address} when is_tuple(address) -> address
         _ -> nil

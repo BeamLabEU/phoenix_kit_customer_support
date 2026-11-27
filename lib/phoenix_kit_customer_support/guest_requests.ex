@@ -262,8 +262,38 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
   @spec reply(Ticket.t(), map(), keyword()) ::
           {:ok, TicketComment.t()}
           | {:error,
-             :disabled | :invalid | :closed | :rate_limited | :rejected | Ecto.Changeset.t()}
-  def reply(%Ticket{} = ticket, params, opts \\ []) do
+             :disabled
+             | :invalid
+             | :expired
+             | :closed
+             | :rate_limited
+             | :rejected
+             | Ecto.Changeset.t()}
+  def reply(ticket, params, opts \\ [])
+
+  # From the guest page: the link is re-checked on every reply (its age, the
+  # guest's email, the ticket still being a guest's), so a page left open
+  # past `link_max_age` or after the ticket moved stops taking replies.
+  def reply(%Ticket{} = ticket, params, opts) when is_list(opts) do
+    case Keyword.fetch(opts, :token) do
+      {:ok, token} ->
+        case ticket_from_token(token) do
+          {:ok, %Ticket{uuid: uuid} = current} when uuid == ticket.uuid ->
+            do_reply(current, params, opts)
+
+          {:ok, _other} ->
+            {:error, :invalid}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      :error ->
+        do_reply(ticket, params, opts)
+    end
+  end
+
+  defp do_reply(ticket, params, opts) do
     peer_ip = Keyword.get(opts, :peer_ip)
 
     cond do

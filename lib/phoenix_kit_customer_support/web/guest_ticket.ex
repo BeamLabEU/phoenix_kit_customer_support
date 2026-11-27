@@ -28,6 +28,7 @@ defmodule PhoenixKitCustomerSupport.Web.GuestTicket do
        page_title: gettext("Your support request"),
        peer_ip: GuestLocale.peer_ip(socket),
        ticket: nil,
+       token: nil,
        link_error: nil,
        comments: [],
        error: nil,
@@ -39,6 +40,8 @@ defmodule PhoenixKitCustomerSupport.Web.GuestTicket do
   @impl true
   def handle_params(%{"token" => token}, uri, socket) do
     socket = assign(socket, :url_path, URI.parse(uri).path)
+
+    socket = assign(socket, :token, token)
 
     with true <- GuestRequests.enabled?() || {:error, :disabled},
          {:ok, ticket} <- GuestRequests.ticket_from_token(token),
@@ -59,7 +62,10 @@ defmodule PhoenixKitCustomerSupport.Web.GuestTicket do
         # Re-read: the ticket may have been closed since the page opened.
         ticket = PhoenixKitCustomerSupport.get_ticket(ticket.uuid) || ticket
 
-        case GuestRequests.reply(ticket, params, peer_ip: socket.assigns.peer_ip) do
+        case GuestRequests.reply(ticket, params,
+               peer_ip: socket.assigns.peer_ip,
+               token: socket.assigns.token
+             ) do
           {:ok, _comment} ->
             {:noreply,
              socket
@@ -68,6 +74,11 @@ defmodule PhoenixKitCustomerSupport.Web.GuestTicket do
 
           {:error, %Ecto.Changeset{}} ->
             {:noreply, assign(socket, :error, gettext("Please write a reply first."))}
+
+          # The link no longer speaks for the ticket (expired, or the ticket
+          # moved): the page shows the link notice instead.
+          {:error, reason} when reason in [:expired, :invalid] ->
+            {:noreply, assign(socket, ticket: nil, comments: [], link_error: reason)}
 
           {:error, reason} ->
             {:noreply, socket |> load(ticket) |> assign(:error, GuestNew.error_message(reason))}

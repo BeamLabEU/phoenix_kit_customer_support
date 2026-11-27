@@ -63,6 +63,7 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
 
   @setting "customer_support_allow_anonymous_requests"
   @token_salt "phoenix_kit_customer_support.guest_ticket"
+  @email_tag_salt "phoenix_kit_customer_support.guest_email_tag"
   @default_max_age 30 * 24 * 60 * 60
   @honeypot "website"
 
@@ -410,10 +411,18 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
       {:error, :rejected}
   end
 
+  # Keyed (HMAC with a key derived from the endpoint's `secret_key_base`):
+  # the token is signed, not encrypted, so an unkeyed hash would let anyone
+  # holding a link confirm a guessed address.
   defp email_tag(email) do
-    :crypto.hash(:sha256, String.downcase(email))
+    :crypto.mac(:hmac, :sha256, email_tag_key(), String.downcase(email))
     |> binary_part(0, 12)
     |> Base.url_encode64(padding: false)
+  end
+
+  defp email_tag_key do
+    token_endpoint().config(:secret_key_base)
+    |> Plug.Crypto.KeyGenerator.generate(@email_tag_salt, length: 32, cache: Plug.Crypto.Keys)
   end
 
   defp current_locale, do: Gettext.get_locale(PhoenixKitCustomerSupport.Gettext)

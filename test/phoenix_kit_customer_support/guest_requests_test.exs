@@ -270,6 +270,46 @@ defmodule PhoenixKitCustomerSupport.GuestRequestsTest do
       refute token =~ ticket.guest_email
     end
 
+    test "the token carries a keyed tag of the email, not a plain hash of it" do
+      {:ok, ticket} = GuestRequests.submit(unique_params())
+      token = GuestRequests.access_token(ticket)
+
+      [_, payload | _] = String.split(token, ".")
+
+      {%{"e" => tag}, _signed_at, _max_age} =
+        payload |> Base.url_decode64!(padding: false) |> :erlang.binary_to_term()
+
+      plain =
+        :crypto.hash(:sha256, ticket.guest_email)
+        |> binary_part(0, 12)
+        |> Base.url_encode64(padding: false)
+
+      refute tag == plain
+      assert {:ok, _} = GuestRequests.ticket_from_token(token)
+    end
+
+    test "a reply through an expired link is refused, even from an open page" do
+      {:ok, ticket} = GuestRequests.submit(unique_params())
+      token = GuestRequests.access_token(ticket)
+
+      assert {:ok, _} = GuestRequests.reply(ticket, %{"content" => "one"}, token: token)
+
+      Application.put_env(:phoenix_kit_customer_support, :guest_link_max_age, 1)
+      Process.sleep(2_100)
+
+      assert {:error, :expired} = GuestRequests.reply(ticket, %{"content" => "two"}, token: token)
+      assert length(GuestRequests.list_comments(ticket)) == 1
+    end
+
+    test "a reply re-reads the ticket under its lock: a close that landed first wins" do
+      {:ok, ticket} = GuestRequests.submit(unique_params())
+      # The caller still holds the open struct; the row is already closed.
+      ticket |> Ecto.Changeset.change(status: "closed") |> Repo.update!()
+
+      assert {:error, :closed} = GuestRequests.reply(ticket, %{"content" => "late"})
+      assert GuestRequests.list_comments(ticket) == []
+    end
+
     test "an expired token is refused as expired" do
       {:ok, ticket} = GuestRequests.submit(unique_params())
       token = GuestRequests.access_token(ticket)

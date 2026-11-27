@@ -319,8 +319,19 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
     end
   end
 
+  # The status check and the insert happen under the ticket's row lock, so a
+  # close (or a move to an account) that commits first is always seen: no
+  # reply lands on a ticket closed a moment earlier.
   defp insert_reply(ticket, params) do
     repo().transaction(fn ->
+      locked = repo().one(from(t in Ticket, where: t.uuid == ^ticket.uuid, lock: "FOR UPDATE"))
+
+      cond do
+        is_nil(locked) or not Ticket.guest?(locked) -> repo().rollback(:invalid)
+        not Ticket.can_comment?(locked) -> repo().rollback(:closed)
+        true -> :ok
+      end
+
       case %TicketComment{}
            |> TicketComment.guest_changeset(%{
              "ticket_uuid" => ticket.uuid,

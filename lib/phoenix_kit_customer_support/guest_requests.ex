@@ -60,6 +60,7 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
   alias PhoenixKitCustomerSupport.Ticket
   alias PhoenixKitCustomerSupport.TicketComment
   alias PhoenixKitCustomerSupport.TicketStatusHistory
+  alias Plug.Crypto.KeyGenerator
 
   @setting "customer_support_allow_anonymous_requests"
   @token_salt "phoenix_kit_customer_support.guest_ticket"
@@ -463,7 +464,7 @@ defmodule PhoenixKitCustomerSupport.GuestRequests do
 
   defp email_tag_key do
     token_endpoint().config(:secret_key_base)
-    |> Plug.Crypto.KeyGenerator.generate(@email_tag_salt, length: 32, cache: Plug.Crypto.Keys)
+    |> KeyGenerator.generate(@email_tag_salt, length: 32, cache: Plug.Crypto.Keys)
   end
 
   defp current_locale, do: Gettext.get_locale(PhoenixKitCustomerSupport.Gettext)

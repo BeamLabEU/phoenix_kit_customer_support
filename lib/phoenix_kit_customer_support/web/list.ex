@@ -198,6 +198,10 @@ defmodule PhoenixKitCustomerSupport.Web.List do
     {:noreply, socket}
   end
 
+  # Comments have no fields displayed in the staff list.
+  def handle_info({event, _comment, _ticket}, socket)
+      when event in [:comment_created, :internal_note_created], do: {:noreply, socket}
+
   # Private functions
 
   defp tickets_enabled? do

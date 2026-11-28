@@ -38,7 +38,7 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
     alias PhoenixKit.Migrations.Postgres.Helpers
 
     test "current_version/0 and version_table/0" do
-      assert Migrations.current_version() == 1
+      assert Migrations.current_version() == 2
       assert Migrations.version_table() == "phoenix_kit_tickets"
     end
 
@@ -203,7 +203,7 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
 
   describe "the chain DDL adopts core's V135/V164/V168 shape" do
     test "V1 uses core's exact object names (shape-identical adoption)" do
-      statements = Enum.join(Migrations.up_statements(), "\n")
+      statements = Enum.join(Migrations.up_statements("public", 1), "\n")
 
       for name <- [
             "phoenix_kit_tickets_pkey",
@@ -249,7 +249,7 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
     end
 
     test "up stamps the version marker, and stamps it last" do
-      statements = Migrations.up_statements()
+      statements = Migrations.up_statements("public", 1)
 
       assert List.last(statements) ==
                "COMMENT ON TABLE public.phoenix_kit_tickets IS 'pkcs_schema:1'",
@@ -276,7 +276,7 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
         "ALTER TABLE public.phoenix_kit_ticket_status_history ALTER COLUMN changed_by_uuid DROP NOT NULL"
       ]
 
-      ddl = Enum.reject(Migrations.up_statements(), &(&1 in exempt))
+      ddl = Enum.reject(Migrations.up_statements("public", 1), &(&1 in exempt))
 
       for stmt <- ddl do
         assert stmt =~ "IF NOT EXISTS",
@@ -288,7 +288,7 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
     # pkey, check, index or FK guard runs; the marker must certify a
     # finished shape.
     test "statement sections appear in the order tables -> alter-safety-net -> pkeys -> checks -> indexes -> fks -> marker" do
-      statements = Migrations.up_statements()
+      statements = Migrations.up_statements("public", 1)
 
       sections =
         Enum.map(statements, fn stmt ->
@@ -384,6 +384,12 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
       {"DO", "phoenix_kit_ticket_attachments_file_id_fkey"},
       {"DO", "phoenix_kit_ticket_status_history_ticket_id_fkey"},
       {"DO", "fk_ticket_status_history_changed_by_uuid"},
+      # V2: guest requests
+      {"ALTER TABLE", "phoenix_kit_tickets"},
+      {"ALTER TABLE", "phoenix_kit_tickets"},
+      {"ALTER TABLE", "phoenix_kit_tickets"},
+      {"CREATE INDEX", "phoenix_kit_tickets_guest_email_idx"},
+      {"ALTER TABLE", "phoenix_kit_ticket_comments"},
       {"COMMENT ON TABLE", "phoenix_kit_tickets"}
     ]
 
@@ -541,6 +547,8 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
     alias PhoenixKitCustomerSupport.Ticket
     alias PhoenixKitCustomerSupport.TicketStatusHistory
 
+    @added_after_v1 %{"phoenix_kit_tickets" => [:guest_name, :guest_email]}
+
     @width_schemas %{
       "phoenix_kit_tickets" => Ticket,
       "phoenix_kit_ticket_status_history" => TicketStatusHistory
@@ -565,7 +573,8 @@ defmodule PhoenixKitCustomerSupport.MigrationsTest do
             {String.to_existing_atom(col), String.to_integer(width)}
           end)
 
-        assert parsed == schema.column_widths(),
+        # Columns a later version adds (V2's guest columns) are not in V1's CREATE.
+        assert parsed == Map.drop(schema.column_widths(), Map.get(@added_after_v1, table, [])),
                """
                #{table}: the CREATE widths and #{inspect(schema)}.column_widths/0 disagree.
 

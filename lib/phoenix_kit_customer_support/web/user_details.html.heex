@@ -127,9 +127,11 @@
               <%= for comment <- @comments do %>
                 <div class="bg-base-200 rounded-lg p-4">
                   <div class="flex items-center gap-2 mb-2">
-                    <.user_avatar user={comment.user} size="sm" />
+                    <.user_avatar :if={comment.user} user={comment.user} size="sm" />
                     <div>
-                      <span class="font-medium">{comment.user.email}</span>
+                      <span class="font-medium">
+                        {if comment.user, do: comment.user.email, else: @ticket.guest_name}
+                      </span>
                       <span class="text-sm text-base-content/50 ml-2">
                         {Calendar.strftime(comment.inserted_at, "%b %d, %Y %H:%M")}
                       </span>

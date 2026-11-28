@@ -125,9 +125,13 @@
                 <div class="bg-base-200 rounded-lg p-4">
                   <div class="flex items-start justify-between">
                     <div class="flex items-center gap-2">
-                      <.user_avatar user={comment.user} size="sm" />
+                      <.user_avatar :if={comment.user} user={comment.user} size="sm" />
                       <div>
-                        <span class="font-medium">{comment.user.email}</span>
+                        <span class="font-medium">
+                          {if comment.user,
+                            do: comment.user.email,
+                            else: "#{@ticket.guest_name} (#{PhoenixKitCustomerSupport.Web.GuestLabels.guest()})"}
+                        </span>
                         <span class="text-sm text-base-content/50 ml-2">
                           {Calendar.strftime(comment.inserted_at, "%Y-%m-%d %H:%M")}
                         </span>
@@ -372,11 +376,21 @@
           <div class="mb-4">
             <span class="text-sm text-base-content/70">Customer</span>
             <div class="mt-1 flex items-center gap-2">
-              <%= if @ticket.user do %>
-                <.user_avatar user={@ticket.user} size="xs" />
-                <span class="text-sm">{@ticket.user.email}</span>
-              <% else %>
-                <span class="text-sm text-base-content/50">Unknown</span>
+              <%= cond do %>
+                <% @ticket.user -> %>
+                  <.user_avatar user={@ticket.user} size="xs" />
+                  <span class="text-sm">{@ticket.user.email}</span>
+                <% @ticket.guest_email -> %>
+                  <div id="ticket-guest" class="text-sm">
+                    <div>{@ticket.guest_name} · {@ticket.guest_email}</div>
+                    <div class="text-xs text-base-content/60">
+                      {PhoenixKitCustomerSupport.Web.GuestLabels.guest_no_account()} · {if @ticket.guest_verified_at,
+                        do: PhoenixKitCustomerSupport.Web.GuestLabels.email_confirmed(),
+                        else: PhoenixKitCustomerSupport.Web.GuestLabels.email_not_confirmed()}
+                    </div>
+                  </div>
+                <% true -> %>
+                  <span class="text-sm text-base-content/50">Unknown</span>
               <% end %>
             </div>
           </div>

@@ -32,6 +32,8 @@ Requires PhoenixKit core `>= 3.5.0 and < 4.0.0`. `Ticket.changeset/2` calls `Pho
 
 This module owns and versions the future shape of its 4 tables (`phoenix_kit_tickets`, `phoenix_kit_ticket_comments`, `phoenix_kit_ticket_attachments`, `phoenix_kit_ticket_status_history`) through its own migration chain, `PhoenixKitCustomerSupport.Migrations`. Core's `V135`/`V168` still CREATE these 4 tables on every install — this chain's `V1` adopts that shape and stamps a version marker. It makes exactly one real change: `phoenix_kit_ticket_status_history.changed_by_uuid` is made NULLABLE (`ALTER COLUMN … DROP NOT NULL`), because core's baseline declares it `NOT NULL` while its own FK is `ON DELETE SET NULL` — a contradiction core's V164 documents but never resolves. Hosts installed from the squashed `V135` baseline (core ≥ 2.0.0) carry the `NOT NULL` and are relaxed by `V1`; older hosts that reached the current chain historically already have it nullable, so `V1` is a no-op there. `V1` also replaces any legacy descriptive `COMMENT` on `phoenix_kit_tickets` with the version marker. The core floor above guarantees V168, because `V1` must already include V168 (the unique slug index) for the adopted shape to match.
 
+V2 adds the guest name, email and verification timestamp to tickets and allows guest comments without a user account. Apply the module migration when upgrading, including on hosts where guest requests stay disabled.
+
 ## Module integration
 
 The package registers itself with PhoenixKit's module system. No manual router wiring needed — admin routes are auto-discovered at compile time via `route_module/0`.
@@ -59,6 +61,10 @@ The package registers itself with PhoenixKit's module system. No manual router w
 
 User-facing routes are registered by `PhoenixKitWeb.Integration` in the core library when this package is present — no additional router configuration is required in the host app.
 
+### Guest requests
+
+With customer support enabled, turn on **Requests without an account** in customer support settings. Guests file at `/support/request`. Opening the emailed link verifies the address and makes the ticket visible in the staff queue. The same link opens the public conversation at `/support/requests/:token`. Links expire after 30 days by default. Guests can request fresh links from the submission page.
+
 ## Settings
 
 The following settings keys control this module's behaviour. They are managed via the admin Settings UI (`/admin/settings/customer-support`) or directly via `PhoenixKit.Settings`.
@@ -71,6 +77,7 @@ The following settings keys control this module's behaviour. They are managed vi
 | `customer_support_internal_notes_enabled` | `true` | Enables internal (agent-only) notes on tickets. |
 | `customer_support_attachments_enabled` | `true` | Allows file attachments to be added to tickets and comments. |
 | `customer_support_allow_reopen` | `true` | Permits closed tickets to be reopened by users or agents. |
+| `customer_support_allow_anonymous_requests` | `false` | Allows guests to file requests and access them by email link. |
 
 ## Removing this module
 

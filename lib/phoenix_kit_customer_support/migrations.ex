@@ -135,6 +135,20 @@ defmodule PhoenixKitCustomerSupport.Migrations do
   Skipping step 1 means `mix phoenix_kit.repair` restores the old shape
   after every run, silently undoing the new version.
 
+  ### V2 — anonymous (guest) requests
+
+  Additive, for `PhoenixKitCustomerSupport.GuestRequests`: nullable
+  `guest_name` / `guest_email` (widths from `Ticket.column_widths/0`) and
+  `guest_verified_at` on `phoenix_kit_tickets`, a partial index
+  `phoenix_kit_tickets_guest_email_idx` on `lower(guest_email)`, and
+  `phoenix_kit_ticket_comments.user_uuid` relaxed to nullable (a guest's
+  reply has no user). Existing rows read `NULL` in every new column, which
+  is "not a guest request". No Phase 1 core step is needed: the new columns
+  and index are objects core's manifest never names, and core's manifest
+  describes `comments.user_uuid` as `not_null: true, default: nil`, a shape
+  its repair differ does not compare `not_null` for, so repair never puts
+  NOT NULL back. `down/1` leaves all of it in place (guest rows may exist).
+
   ### Phase 2 — creation leaves core's baseline at the next squash cycle
 
   When core cuts its next baseline, module-owned tables are simply not
@@ -174,7 +188,7 @@ defmodule PhoenixKitCustomerSupport.Migrations do
   alias PhoenixKitCustomerSupport.TicketStatusHistory
 
   @initial_version 1
-  @current_version 1
+  @current_version 2
   @default_prefix "public"
   @marker_prefix "pkcs_schema:"
 
@@ -314,7 +328,11 @@ defmodule PhoenixKitCustomerSupport.Migrations do
     if target == 0 do
       []
     else
-      v1_statements(prefix, target)
+      q_tickets = Helpers.qualify_table(@tickets, prefix)
+      v2 = if target >= 2, do: v2_statements(prefix), else: []
+
+      v1_statements(prefix) ++
+        v2 ++ ["COMMENT ON TABLE #{q_tickets} IS '#{@marker_prefix}#{target}'"]
     end
   end
 
@@ -342,7 +360,7 @@ defmodule PhoenixKitCustomerSupport.Migrations do
 
   # ── V1 statement builder ────────────────────────────────────────────────
 
-  defp v1_statements(prefix, target) do
+  defp v1_statements(prefix) do
     users = Helpers.qualify_table("phoenix_kit_users", prefix)
     files = Helpers.qualify_table("phoenix_kit_files", prefix)
     uuid_default = Helpers.uuid_v7_call(prefix)
@@ -579,9 +597,29 @@ defmodule PhoenixKitCustomerSupport.Migrations do
       )
     ]
 
-    marker = ["COMMENT ON TABLE #{q_tickets} IS '#{@marker_prefix}#{target}'"]
+    tables ++ safety_net ++ pkeys ++ checks ++ indexes ++ fks
+  end
 
-    tables ++ safety_net ++ pkeys ++ checks ++ indexes ++ fks ++ marker
+  # ── V2 statement builder: anonymous (guest) requests ───────────────────
+  #
+  # Additive only. The guest columns are new (core's manifest never names
+  # them); `phoenix_kit_ticket_comments.user_uuid` loses its NOT NULL so a
+  # guest's reply can be stored without a user. Core's manifest describes
+  # that column as `not_null: true, default: nil`, a shape its repair differ
+  # does not compare `not_null` for, so repair never puts NOT NULL back.
+  # `down/1` does not restore it either (guest replies may exist by then).
+  defp v2_statements(prefix) do
+    q_tickets = Helpers.qualify_table(@tickets, prefix)
+    q_ticket_comments = Helpers.qualify_table(@ticket_comments, prefix)
+    gw = Ticket.column_widths()
+
+    [
+      "ALTER TABLE #{q_tickets} ADD COLUMN IF NOT EXISTS guest_name character varying(#{gw.guest_name})",
+      "ALTER TABLE #{q_tickets} ADD COLUMN IF NOT EXISTS guest_email character varying(#{gw.guest_email})",
+      "ALTER TABLE #{q_tickets} ADD COLUMN IF NOT EXISTS guest_verified_at timestamp with time zone",
+      "CREATE INDEX IF NOT EXISTS phoenix_kit_tickets_guest_email_idx ON #{q_tickets} USING btree (lower((guest_email)::text)) WHERE guest_email IS NOT NULL",
+      "ALTER TABLE #{q_ticket_comments} ALTER COLUMN user_uuid DROP NOT NULL"
+    ]
   end
 
   defp unique_prefix("UNIQUE"), do: "UNIQUE "
